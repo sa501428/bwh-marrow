@@ -1,0 +1,531 @@
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
+    color: #333;
+    line-height: 1.4;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 6px;
+}
+
+/* Header */
+header {
+    text-align: center;
+    margin-bottom: 10px;
+    padding: 10px;
+    background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+header h1 {
+    color: white;
+    font-size: 1.8rem;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Section Cards */
+.section-card {
+    background: white;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    border: 1px solid #e1e8ed;
+}
+
+.section-header {
+    background: linear-gradient(135deg, #90EE90 0%, #7CB342 100%);
+    padding: 8px 12px;
+    border-bottom: 1px solid #ddd;
+}
+
+.section-header h2 {
+    color: #2c3e50;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+    text-align: center;
+}
+
+.section-content {
+    padding: 10px;
+}
+
+/* Subsection styling */
+.subsection h3 {
+    color: #8B4513;
+    font-size: 1rem;
+    margin-bottom: 6px;
+    border-bottom: 1px dotted #ccc;
+    padding-bottom: 3px;
+}
+
+/* Form Layout */
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.form-group {
+    margin-bottom: 8px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 3px;
+    font-size: 0.85rem;
+}
+
+/* Input Fields */
+input[type="text"], 
+input[type="number"],
+textarea {
+    width: 100%;
+    padding: 6px 8px;
+    border: 2px solid #e1e8ed;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+input[type="text"]:focus, 
+input[type="number"]:focus,
+textarea:focus {
+    outline: none;
+    border-color: #4a90e2;
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.1);
+}
+
+textarea {
+    resize: vertical;
+    min-height: 50px;
+    font-family: inherit;
+}
+
+/* Radio Buttons */
+.radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.radio-group label {
+    display: flex;
+    align-items: center;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 3px;
+    transition: background-color 0.2s ease;
+    font-size: 0.85rem;
+}
+
+.radio-group label:hover {
+    background-color: #f8f9fa;
+}
+
+.radio-group input[type="radio"] {
+    margin-right: 6px;
+    transform: scale(1.0);
+    accent-color: #4a90e2;
+}
+
+/* Checkboxes */
+.checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.checkbox-group label {
+    display: flex;
+    align-items: center;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 3px;
+    transition: background-color 0.2s ease;
+    white-space: nowrap;
+    font-size: 0.85rem;
+}
+
+.checkbox-group label:hover {
+    background-color: #f8f9fa;
+}
+
+.checkbox-group input[type="checkbox"] {
+    margin-right: 6px;
+    transform: scale(1.0);
+    accent-color: #4a90e2;
+}
+
+/* Descriptor Sections */
+.descriptor-section {
+    background: #f8f9fa;
+    border: 1px solid #e1e8ed;
+    border-radius: 4px;
+    padding: 8px;
+    margin: 8px 0;
+}
+
+.descriptor-section h4 {
+    color: #495057;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin: 6px 0 4px 0;
+    padding-bottom: 2px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.descriptor-section h4:first-child {
+    margin-top: 0;
+}
+
+.checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 2px;
+    margin-bottom: 6px;
+}
+
+.checkbox-grid.compact {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1px;
+    margin-bottom: 4px;
+}
+
+.checkbox-grid.compact label {
+    padding: 1px 4px;
+    margin: 0;
+    font-size: 0.8rem;
+}
+
+.checkbox-grid label {
+    display: flex;
+    align-items: center;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 2px;
+    transition: all 0.2s ease;
+    font-size: 0.8rem;
+    background: white;
+    border: 1px solid #e1e8ed;
+}
+
+.checkbox-grid label:hover {
+    background-color: #e3f2fd;
+    border-color: #2196f3;
+    transform: translateY(-1px);
+    box-shadow: 0 1px 3px rgba(33, 150, 243, 0.15);
+}
+
+.checkbox-grid input[type="checkbox"] {
+    margin-right: 4px;
+    transform: scale(0.9);
+    accent-color: #2196f3;
+}
+
+.checkbox-grid input[type="checkbox"]:checked + span {
+    color: #1976d2;
+    font-weight: 600;
+}
+
+/* Descriptor section summary */
+.descriptor-summary {
+    background: #e8f5e8;
+    border: 1px solid #4caf50;
+    border-radius: 3px;
+    padding: 6px;
+    margin: 6px 0;
+}
+
+.cell-type-section {
+    background: #f8f9fa;
+    border: 1px solid #e1e8ed;
+    border-radius: 4px;
+    padding: 8px;
+    margin: 6px 0;
+    display: block; /* Visible by default */
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+.cell-type-section h4 {
+    color: #495057;
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 0 0 6px 0;
+    padding-bottom: 3px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.cell-type-section h5 {
+    color: #6c757d;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin: 6px 0 3px 0;
+}
+
+.cell-type-section h6 {
+    color: #6c757d;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin: 4px 0 2px 0;
+}
+
+.toggle-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 8px;
+}
+
+.abnormal-toggle {
+    margin-right: 6px;
+    transform: scale(1.0);
+}
+
+.toggle-text {
+    font-size: 0.9rem;
+}
+
+.descriptor-category {
+    margin-bottom: 8px;
+}
+
+.descriptor-category h6 {
+    color: #6c757d;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin: 6px 0 2px 0;
+    padding-bottom: 1px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.descriptor-summary h5 {
+    color: #2e7d32;
+    margin: 0 0 4px 0;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.descriptor-summary .summary-text {
+    color: #388e3c;
+    font-size: 0.8rem;
+    line-height: 1.2;
+}
+
+/* Responsive adjustments for descriptor sections */
+@media (max-width: 768px) {
+    .checkbox-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .descriptor-section {
+        padding: 10px;
+    }
+    
+    .descriptor-section h4 {
+        font-size: 0.9rem;
+    }
+}
+
+/* Buttons */
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+    color: white;
+    box-shadow: 0 2px 8px rgba(74, 144, 226, 0.3);
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 12px rgba(74, 144, 226, 0.4);
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+    color: white;
+    box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3);
+}
+
+.btn-secondary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 12px rgba(108, 117, 125, 0.4);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+}
+
+.btn-danger:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 12px rgba(220, 53, 69, 0.4);
+}
+
+/* Instruction text */
+.instruction {
+    color: #dc3545;
+    font-weight: 600;
+    margin-bottom: 10px;
+    font-size: 0.85rem;
+}
+
+/* Report Section */
+.report-section {
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 15px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e1e8ed;
+}
+
+.report-section h2 {
+    color: #2c3e50;
+    margin-bottom: 12px;
+    text-align: center;
+    font-size: 1.4rem;
+}
+
+.report-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.report-output textarea {
+    width: 100%;
+    min-height: 200px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    background: #f8f9fa;
+    border: 2px solid #e1e8ed;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+    
+    header h1 {
+        font-size: 1.8rem;
+    }
+    
+    .section-content {
+        padding: 12px;
+    }
+    
+    .report-controls {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .btn {
+        width: 100%;
+        max-width: 250px;
+    }
+}
+
+@media (max-width: 480px) {
+    .section-header h2 {
+        font-size: 1.1rem;
+    }
+    
+    .form-group label {
+        font-size: 0.85rem;
+    }
+    
+    input[type="text"], 
+    input[type="number"],
+    textarea {
+        padding: 6px 8px;
+        font-size: 0.85rem;
+    }
+}
+
+/* Special styling for specific sections */
+.section-card:nth-child(odd) .section-header {
+    background: linear-gradient(135deg, #87CEEB 0%, #5F9EA0 100%);
+}
+
+.section-card:nth-child(even) .section-header {
+    background: linear-gradient(135deg, #90EE90 0%, #7CB342 100%);
+}
+
+/* Focus states for accessibility */
+input:focus,
+textarea:focus,
+.btn:focus {
+    outline: 2px solid #4a90e2;
+    outline-offset: 1px;
+}
+
+/* Smooth scrolling */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
