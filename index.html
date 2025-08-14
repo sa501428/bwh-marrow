@@ -13,44 +13,42 @@
         </header>
 
         <div class="main-content">
-            <!-- Case Overview Section -->
+            <!-- Epic Data Parser Section -->
             <div class="section-card">
                 <div class="section-header">
-                    <h2>Case Overview</h2>
+                    <h2>Epic Data Parser</h2>
                 </div>
                 <div class="section-content">
+                    <div class="form-group">
+                        <label for="epic-data-input">Paste CBC, Auto Diff, and Manual Diff data from Epic</label>
+                        <textarea id="epic-data-input" placeholder="Paste all CBC and differential data here...&#10;&#10;Example:&#10;CBC 04/15/2024&#10;WBC: 8.5 K/uL&#10;HGB: 12.3 g/dL&#10;HCT: 36.8%&#10;PLT: 245 K/uL&#10;&#10;Auto Differential:&#10;Neutrophils: 62.5%&#10;Lymphocytes: 28.3%&#10;Monocytes: 7.2%&#10;&#10;Manual Differential:&#10;Polys: 60%&#10;Bands: 3%&#10;Lymphs: 25%&#10;Blasts: 0%"></textarea>
+                    </div>
                     <div class="form-row">
-                        <div class="form-group">
-                            <label for="accession">Accession #</label>
-                            <input type="text" id="accession" placeholder="Enter accession number">
-                        </div>
-                        <div class="form-group">
-                            <label>Laterality</label>
-                            <div class="radio-group">
-                                <label><input type="radio" name="laterality" value="do not report" checked> do not report</label>
-                                <label><input type="radio" name="laterality" value="LEFT"> LEFT</label>
-                                <label><input type="radio" name="laterality" value="RIGHT"> RIGHT</label>
-                            </div>
-                        </div>
+                        <button type="button" class="btn btn-primary" onclick="parseEpicData()">Parse Data</button>
+                        <button type="button" class="btn btn-secondary" onclick="clearEpicData()">Clear</button>
                     </div>
-                    
-                    <div class="form-group">
-                        <label>Check each specimen present</label>
-                        <div class="checkbox-group">
-                            <label><input type="checkbox" name="specimens" value="Biopsy" checked> Biopsy</label>
-                            <label><input type="checkbox" name="specimens" value="Aspirate" checked> Aspirate</label>
+                    <div id="parsing-results" class="parsing-results" style="display: none;">
+                        <h4>Parsed Results:</h4>
+                        <div id="parsed-cbc" class="parsed-section">
+                            <h5>CBC Results:</h5>
+                            <div id="cbc-values"></div>
                         </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="clinical-summary">Clinical summary - BWH cases only</label>
-                        <textarea id="clinical-summary" placeholder="Enter clinical summary">MDS s/p SCT</textarea>
+                        <div id="parsed-auto-diff" class="parsed-section">
+                            <div id="auto-diff-values"></div>
+                        </div>
+                        <div id="parsed-manual-diff" class="parsed-section">
+                            <div id="manual-diff-values"></div>
+                        </div>
+                        <div id="parsing-errors" class="parsing-errors" style="display: none;">
+                            <h5>Parsing Errors:</h5>
+                            <div id="error-messages"></div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Core Biopsy Section -->
-            <div class="section-card">
+            <div class="section-card" id="core-section">
                 <div class="section-header">
                     <h2>Core Biopsy</h2>
                 </div>
@@ -60,12 +58,11 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Biopsy adequacy</label>
-                                <div class="radio-group">
-                                    <label><input type="radio" name="biopsy-adequacy" value="Adequate"> Adequate</label>
-                                    <label><input type="radio" name="biopsy-adequacy" value="Excellent"> Excellent</label>
-                                    <label><input type="radio" name="biopsy-adequacy" value="Limited" checked> Limited</label>
-                                    <label><input type="radio" name="biopsy-adequacy" value="Inadequate"> Inadequate</label>
-                                </div>
+                                    <div class="radio-group">
+                                        <label><input type="radio" name="biopsy-adequacy" value="Adequate"> Adequate</label>
+                                        <label><input type="radio" name="biopsy-adequacy" value="Limited" checked> Limited</label>
+                                        <label><input type="radio" name="biopsy-adequacy" value="Inadequate"> Inadequate</label>
+                                    </div>
                             </div>
                             <div class="form-group">
                                 <label for="limitations">Describe limitations</label>
@@ -96,6 +93,7 @@
                                         <label><input type="radio" name="core-megakaryocytes" value="adequate"> adequate</label>
                                         <label><input type="radio" name="core-megakaryocytes" value="decreased"> decreased</label>
                                         <label><input type="radio" name="core-megakaryocytes" value="increased" checked> increased</label>
+                                        <label><input type="radio" name="core-megakaryocytes" value="maturation is complete and without significant abnormalities"> maturation is complete and without significant abnormalities</label>
                                     </div>
                                 </div>
                                 <div class="form-group">
@@ -116,21 +114,26 @@
                                         <div class="checkbox-grid compact">
                                             <label><input type="checkbox" name="core-meg-size" value="Small / Micromegakaryocytes"> Small / Micromegakaryocytes</label>
                                             <label><input type="checkbox" name="core-meg-size" value="Large / Giant megakaryocytes"> Large / Giant megakaryocytes</label>
-                                            <label><input type="checkbox" name="core-meg-size" value="Increased / Decreased cellularity"> Increased / Decreased cellularity</label>
-                                            <label><input type="checkbox" name="core-meg-size" value="Clusters vs scattered distribution"> Clusters vs scattered distribution</label>
+                                             <label><input type="checkbox" name="core-meg-size" value="Increased megakaryocyte density"> Increased megakaryocyte density</label>
+                                             <label><input type="checkbox" name="core-meg-size" value="Decreased megakaryocyte density"> Decreased megakaryocyte density</label>
+                                             <label><input type="checkbox" name="core-meg-size" value="Clustered distribution"> Clustered distribution</label>
+                                             <label><input type="checkbox" name="core-meg-size" value="Scattered distribution"> Scattered distribution</label>
                                         </div>
                                     </div>
                                     
                                     <div class="descriptor-category">
                                         <h6>Nuclear Features</h6>
                                         <div class="checkbox-grid compact">
-                                            <label><input type="checkbox" name="core-meg-nuclear" value="Hypolobated / Monolobated nuclei"> Hypolobated / Monolobated nuclei</label>
+                                             <label><input type="checkbox" name="core-meg-nuclear" value="Hypolobated nuclei"> Hypolobated nuclei</label>
+                                             <label><input type="checkbox" name="core-meg-nuclear" value="Monolobated nuclei"> Monolobated nuclei</label>
                                             <label><input type="checkbox" name="core-meg-nuclear" value="Hyperlobated nuclei"> Hyperlobated nuclei</label>
-                                            <label><input type="checkbox" name="core-meg-nuclear" value="Round / Oval nuclei"> Round / Oval nuclei</label>
+                                             <label><input type="checkbox" name="core-meg-nuclear" value="Round nuclei"> Round nuclei</label>
+                                             <label><input type="checkbox" name="core-meg-nuclear" value="Oval nuclei"> Oval nuclei</label>
                                             <label><input type="checkbox" name="core-meg-nuclear" value="Bulbous nuclear projections"> Bulbous nuclear projections</label>
                                             <label><input type="checkbox" name="core-meg-nuclear" value="Separated nuclear lobes (pawn ball appearance)"> Separated nuclear lobes ("pawn ball" appearance)</label>
                                             <label><input type="checkbox" name="core-meg-nuclear" value="Irregular nuclear contours"> Irregular nuclear contours</label>
-                                            <label><input type="checkbox" name="core-meg-nuclear" value="Hyperchromatic vs open chromatin"> Hyperchromatic vs open chromatin</label>
+                                             <label><input type="checkbox" name="core-meg-nuclear" value="Hyperchromatic chromatin"> Hyperchromatic chromatin</label>
+                                             <label><input type="checkbox" name="core-meg-nuclear" value="Open chromatin"> Open chromatin</label>
                                         </div>
                                     </div>
                                     
@@ -139,7 +142,8 @@
                                         <div class="checkbox-grid compact">
                                             <label><input type="checkbox" name="core-meg-cytoplasm" value="Basophilic cytoplasm"> Basophilic cytoplasm</label>
                                             <label><input type="checkbox" name="core-meg-cytoplasm" value="Pale or granular cytoplasm"> Pale or granular cytoplasm</label>
-                                            <label><input type="checkbox" name="core-meg-cytoplasm" value="Abundant vs scant cytoplasm"> Abundant vs scant cytoplasm</label>
+                                             <label><input type="checkbox" name="core-meg-cytoplasm" value="Abundant cytoplasm"> Abundant cytoplasm</label>
+                                             <label><input type="checkbox" name="core-meg-cytoplasm" value="Scant cytoplasm"> Scant cytoplasm</label>
                                         </div>
                                     </div>
                                     
@@ -148,7 +152,6 @@
                                         <div class="checkbox-grid compact">
                                             <label><input type="checkbox" name="core-meg-other" value="Dysplastic megakaryocytes"> Dysplastic megakaryocytes</label>
                                             <label><input type="checkbox" name="core-meg-other" value="Bare megakaryocyte nuclei (naked nuclei)"> Bare megakaryocyte nuclei (naked nuclei)</label>
-                                            <label><input type="checkbox" name="core-meg-other" value="Abnormal localization of immature precursors (ALIP) in core sections"> Abnormal localization of immature precursors (ALIP) in core sections</label>
                                         </div>
                                     </div>
                                 </div>
@@ -167,9 +170,10 @@
                                 <div class="form-group">
                                     <label>Erythroid lineage</label>
                                     <div class="radio-group">
-                                        <label><input type="radio" name="core-erythroid" value="adequate"> adequate</label>
-                                        <label><input type="radio" name="core-erythroid" value="decreased"> decreased</label>
-                                        <label><input type="radio" name="core-erythroid" value="increased" checked> increased</label>
+                                        <label><input type="radio" name="core-erythroid" value="complete"> complete</label>
+                                        <label><input type="radio" name="core-erythroid" value="left-shifted"> left-shifted</label>
+                                        <label><input type="radio" name="core-erythroid" value="dysplastic/atypical" checked> dysplastic/atypical</label>
+                                        <label><input type="radio" name="core-erythroid" value="maturation is complete and without significant abnormalities"> maturation is complete and without significant abnormalities</label>
                                     </div>
                                 </div>
                             </div>
@@ -186,7 +190,8 @@
                                         <div class="checkbox-grid compact">
                                             <label><input type="checkbox" name="core-ery-size" value="Normoblastic maturation"> Normoblastic maturation</label>
                                             <label><input type="checkbox" name="core-ery-size" value="Megaloblastic change (large cells with open chromatin)"> Megaloblastic change (large cells with open chromatin)</label>
-                                            <label><input type="checkbox" name="core-ery-size" value="Microcytic / Macrocytic erythroblasts"> Microcytic / Macrocytic erythroblasts</label>
+                                             <label><input type="checkbox" name="core-ery-size" value="Microcytic erythroblasts"> Microcytic erythroblasts</label>
+                                             <label><input type="checkbox" name="core-ery-size" value="Macrocytic erythroblasts"> Macrocytic erythroblasts</label>
                                             <label><input type="checkbox" name="core-ery-size" value="Irregular nuclear shapes (nuclear budding, multinuclearity)"> Irregular nuclear shapes (nuclear budding, multinuclearity)</label>
                                         </div>
                                     </div>
@@ -204,7 +209,9 @@
                                     <div class="descriptor-category">
                                         <h6>Cytoplasmic Features</h6>
                                         <div class="checkbox-grid compact">
-                                            <label><input type="checkbox" name="core-ery-cytoplasm" value="Basophilic vs polychromatic vs orthochromatic cytoplasm"> Basophilic vs polychromatic vs orthochromatic cytoplasm</label>
+                                             <label><input type="checkbox" name="core-ery-cytoplasm" value="Basophilic cytoplasm"> Basophilic cytoplasm</label>
+                                             <label><input type="checkbox" name="core-ery-cytoplasm" value="Polychromatic cytoplasm"> Polychromatic cytoplasm</label>
+                                             <label><input type="checkbox" name="core-ery-cytoplasm" value="Orthochromatic cytoplasm"> Orthochromatic cytoplasm</label>
                                             <label><input type="checkbox" name="core-ery-cytoplasm" value="Vacuolated cytoplasm"> Vacuolated cytoplasm</label>
                                             <label><input type="checkbox" name="core-ery-cytoplasm" value="Reduced hemoglobinization (hypochromia)"> Reduced hemoglobinization (hypochromia)</label>
                                         </div>
@@ -234,9 +241,10 @@
                                 <div class="form-group">
                                     <label>Myeloid lineage</label>
                                     <div class="radio-group">
-                                        <label><input type="radio" name="core-myeloid" value="adequate"> adequate</label>
-                                        <label><input type="radio" name="core-myeloid" value="decreased"> decreased</label>
-                                        <label><input type="radio" name="core-myeloid" value="increased" checked> increased</label>
+                                        <label><input type="radio" name="core-myeloid" value="complete"> complete</label>
+                                        <label><input type="radio" name="core-myeloid" value="left-shifted"> left-shifted</label>
+                                        <label><input type="radio" name="core-myeloid" value="dysplastic/atypical" checked> dysplastic/atypical</label>
+                                        <label><input type="radio" name="core-myeloid" value="maturation is complete and without significant abnormalities"> maturation is complete and without significant abnormalities</label>
                                     </div>
                                 </div>
                             </div>
@@ -281,6 +289,7 @@
                                         <div class="checkbox-grid compact">
                                             <label><input type="checkbox" name="core-myel-other" value="Dysmyelopoiesis"> Dysmyelopoiesis</label>
                                             <label><input type="checkbox" name="core-myel-other" value="Abnormal granule distribution"> Abnormal granule distribution</label>
+                                             <label><input type="checkbox" name="core-myel-other" value="Abnormal localization of immature precursors (ALIP)"> Abnormal localization of immature precursors (ALIP)</label>
                                         </div>
                                     </div>
                                 </div>
@@ -335,8 +344,10 @@
                                     <div class="descriptor-category">
                                         <h6>Distribution</h6>
                                         <div class="checkbox-grid compact">
-                                            <label><input type="checkbox" name="core-lymph-distribution" value="Interstitial, nodular, paratrabecular, diffuse aggregates"> Interstitial, nodular, paratrabecular, diffuse aggregates</label>
-                                            <label><input type="checkbox" name="core-lymph-distribution" value="Monoclonal vs polyclonal plasma cells (immunostaining required)"> Monoclonal vs polyclonal plasma cells (immunostaining required)</label>
+                                             <label><input type="checkbox" name="core-lymph-distribution" value="Interstitial aggregates"> Interstitial aggregates</label>
+                                             <label><input type="checkbox" name="core-lymph-distribution" value="Nodular aggregates"> Nodular aggregates</label>
+                                             <label><input type="checkbox" name="core-lymph-distribution" value="Paratrabecular aggregates"> Paratrabecular aggregates</label>
+                                             <label><input type="checkbox" name="core-lymph-distribution" value="Diffuse aggregates"> Diffuse aggregates</label>
                                         </div>
                                     </div>
                                 </div>
@@ -347,12 +358,55 @@
                                 <textarea id="core-lymphocytes-description" placeholder="Additional findings or specific observations"></textarea>
                             </div>
                         </div>
+
+                        <!-- Core Biopsy - Architecture & Other Findings -->
+                        <div class="cell-type-section" id="core-architecture">
+                            <h4>Architecture & Other Findings</h4>
+                            <div class="descriptor-section collapsible" id="core-architecture-descriptors">
+                                <div class="section-header-toggle">
+                                    <h5>📋 Detailed Descriptors</h5>
+                                    <button class="toggle-btn" data-target="core-architecture-descriptors">▼</button>
+                                </div>
+                                <div class="collapsible-content">
+                                    <div class="descriptor-category">
+                                        <h6>Lymphoid Aggregates</h6>
+                                        <div class="checkbox-grid compact">
+                                            <label><input type="checkbox" name="core-arch-aggregates" value="Lymphoid aggregates present"> Lymphoid aggregates present</label>
+                                            <label><input type="checkbox" name="core-arch-aggregates" value="Paratrabecular aggregates"> Paratrabecular aggregates</label>
+                                            <label><input type="checkbox" name="core-arch-aggregates" value="Interstitial aggregates"> Interstitial aggregates</label>
+                                            <label><input type="checkbox" name="core-arch-aggregates" value="Nodular aggregates"> Nodular aggregates</label>
+                                            <label><input type="checkbox" name="core-arch-aggregates" value="Diffuse aggregates"> Diffuse aggregates</label>
+                                        </div>
+                                    </div>
+
+                                    <div class="descriptor-category">
+                                        <h6>Hemosiderin-laden Macrophages</h6>
+                                        <div class="checkbox-grid compact">
+                                            <label><input type="checkbox" name="core-arch-hemosiderin" value="Rare"> Rare</label>
+                                            <label><input type="checkbox" name="core-arch-hemosiderin" value="Few"> Few</label>
+                                            <label><input type="checkbox" name="core-arch-hemosiderin" value="Numerous"> Numerous</label>
+                                        </div>
+                                    </div>
+
+                                    <div class="descriptor-category">
+                                        <h6>Other Findings</h6>
+                                        <div class="checkbox-grid compact">
+                                            <label><input type="checkbox" name="core-arch-other" value="Granulomas"> Granulomas</label>
+                                            <label><input type="checkbox" name="core-arch-other" value="Hemophagocytosis"> Hemophagocytosis</label>
+                                            <label><input type="checkbox" name="core-arch-other" value="Mast cell aggregates/increase"> Mast cell aggregates/increase</label>
+                                            <label><input type="checkbox" name="core-arch-other" value="Necrosis"> Necrosis</label>
+                                            <label><input type="checkbox" name="core-arch-other" value="Osteosclerosis"> Osteosclerosis</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Aspirate Section -->
-            <div class="section-card">
+            <div class="section-card" id="aspirate-section">
                 <div class="section-header">
                     <h2>Aspirate</h2>
                 </div>
@@ -362,12 +416,11 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Aspirate cellularity</label>
-                                <div class="radio-group">
-                                    <label><input type="radio" name="aspirate-cellularity" value="Adequate"> Adequate</label>
-                                    <label><input type="radio" name="aspirate-cellularity" value="Excellent"> Excellent</label>
-                                    <label><input type="radio" name="aspirate-cellularity" value="Limited" checked> Limited</label>
-                                    <label><input type="radio" name="aspirate-cellularity" value="Inadequate"> Inadequate</label>
-                                </div>
+                                    <div class="radio-group">
+                                        <label><input type="radio" name="aspirate-cellularity" value="Adequate"> Adequate</label>
+                                        <label><input type="radio" name="aspirate-cellularity" value="Limited" checked> Limited</label>
+                                        <label><input type="radio" name="aspirate-cellularity" value="Inadequate"> Inadequate</label>
+                                    </div>
                             </div>
                             <div class="form-group">
                                 <label>Spicules</label>
@@ -410,6 +463,7 @@
                                         <label><input type="radio" name="aspirate-megakaryocytes" value="adequate"> adequate</label>
                                         <label><input type="radio" name="aspirate-megakaryocytes" value="decreased"> decreased</label>
                                         <label><input type="radio" name="aspirate-megakaryocytes" value="increased" checked> increased</label>
+                                        <label><input type="radio" name="aspirate-megakaryocytes" value="maturation is complete and without significant abnormalities"> maturation is complete and without significant abnormalities</label>
                                     </div>
                                 </div>
                             </div>
@@ -426,21 +480,26 @@
                                         <div class="checkbox-grid compact">
                                             <label><input type="checkbox" name="aspirate-meg-size" value="Small / Micromegakaryocytes"> Small / Micromegakaryocytes</label>
                                             <label><input type="checkbox" name="aspirate-meg-size" value="Large / Giant megakaryocytes"> Large / Giant megakaryocytes</label>
-                                            <label><input type="checkbox" name="aspirate-meg-size" value="Increased / Decreased cellularity"> Increased / Decreased cellularity</label>
-                                            <label><input type="checkbox" name="aspirate-meg-size" value="Clusters vs scattered distribution"> Clusters vs scattered distribution</label>
+                                             <label><input type="checkbox" name="aspirate-meg-size" value="Increased megakaryocyte density"> Increased megakaryocyte density</label>
+                                             <label><input type="checkbox" name="aspirate-meg-size" value="Decreased megakaryocyte density"> Decreased megakaryocyte density</label>
+                                             <label><input type="checkbox" name="aspirate-meg-size" value="Clustered distribution"> Clustered distribution</label>
+                                             <label><input type="checkbox" name="aspirate-meg-size" value="Scattered distribution"> Scattered distribution</label>
                                         </div>
                                     </div>
                                     
                                     <div class="descriptor-category">
                                         <h6>Nuclear Features</h6>
                                         <div class="checkbox-grid compact">
-                                            <label><input type="checkbox" name="aspirate-meg-nuclear" value="Hypolobated / Monolobated nuclei"> Hypolobated / Monolobated nuclei</label>
+                                             <label><input type="checkbox" name="aspirate-meg-nuclear" value="Hypolobated nuclei"> Hypolobated nuclei</label>
+                                             <label><input type="checkbox" name="aspirate-meg-nuclear" value="Monolobated nuclei"> Monolobated nuclei</label>
                                             <label><input type="checkbox" name="aspirate-meg-nuclear" value="Hyperlobated nuclei"> Hyperlobated nuclei</label>
-                                            <label><input type="checkbox" name="aspirate-meg-nuclear" value="Round / Oval nuclei"> Round / Oval nuclei</label>
+                                             <label><input type="checkbox" name="aspirate-meg-nuclear" value="Round nuclei"> Round nuclei</label>
+                                             <label><input type="checkbox" name="aspirate-meg-nuclear" value="Oval nuclei"> Oval nuclei</label>
                                             <label><input type="checkbox" name="aspirate-meg-nuclear" value="Bulbous nuclear projections"> Bulbous nuclear projections</label>
                                             <label><input type="checkbox" name="aspirate-meg-nuclear" value="Separated nuclear lobes (pawn ball appearance)"> Separated nuclear lobes ("pawn ball" appearance)</label>
                                             <label><input type="checkbox" name="aspirate-meg-nuclear" value="Irregular nuclear contours"> Irregular nuclear contours</label>
-                                            <label><input type="checkbox" name="aspirate-meg-nuclear" value="Hyperchromatic vs open chromatin"> Hyperchromatic vs open chromatin</label>
+                                             <label><input type="checkbox" name="aspirate-meg-nuclear" value="Hyperchromatic chromatin"> Hyperchromatic chromatin</label>
+                                             <label><input type="checkbox" name="aspirate-meg-nuclear" value="Open chromatin"> Open chromatin</label>
                                         </div>
                                     </div>
                                     
@@ -449,7 +508,8 @@
                                         <div class="checkbox-grid compact">
                                             <label><input type="checkbox" name="aspirate-meg-cytoplasm" value="Basophilic cytoplasm"> Basophilic cytoplasm</label>
                                             <label><input type="checkbox" name="aspirate-meg-cytoplasm" value="Pale or granular cytoplasm"> Pale or granular cytoplasm</label>
-                                            <label><input type="checkbox" name="aspirate-meg-cytoplasm" value="Abundant vs scant cytoplasm"> Abundant vs scant cytoplasm</label>
+                                             <label><input type="checkbox" name="aspirate-meg-cytoplasm" value="Abundant cytoplasm"> Abundant cytoplasm</label>
+                                             <label><input type="checkbox" name="aspirate-meg-cytoplasm" value="Scant cytoplasm"> Scant cytoplasm</label>
                                         </div>
                                     </div>
                                     
@@ -458,7 +518,6 @@
                                         <div class="checkbox-grid compact">
                                             <label><input type="checkbox" name="aspirate-meg-other" value="Dysplastic megakaryocytes"> Dysplastic megakaryocytes</label>
                                             <label><input type="checkbox" name="aspirate-meg-other" value="Bare megakaryocyte nuclei (naked nuclei)"> Bare megakaryocyte nuclei (naked nuclei)</label>
-                                            <label><input type="checkbox" name="aspirate-meg-other" value="Abnormal localization of immature precursors (ALIP) in aspirate"> Abnormal localization of immature precursors (ALIP) in aspirate</label>
                                         </div>
                                     </div>
                                 </div>
@@ -477,9 +536,10 @@
                                 <div class="form-group">
                                     <label>Erythroid lineage</label>
                                     <div class="radio-group">
-                                        <label><input type="radio" name="aspirate-erythroid" value="adequate"> adequate</label>
-                                        <label><input type="radio" name="aspirate-erythroid" value="decreased"> decreased</label>
-                                        <label><input type="radio" name="aspirate-erythroid" value="increased" checked> increased</label>
+                                        <label><input type="radio" name="aspirate-erythroid" value="complete"> complete</label>
+                                        <label><input type="radio" name="aspirate-erythroid" value="left-shifted"> left-shifted</label>
+                                        <label><input type="radio" name="aspirate-erythroid" value="dysplastic/atypical" checked> dysplastic/atypical</label>
+                                        <label><input type="radio" name="aspirate-erythroid" value="maturation is complete and without significant abnormalities"> maturation is complete and without significant abnormalities</label>
                                     </div>
                                 </div>
                             </div>
@@ -496,7 +556,8 @@
                                         <div class="checkbox-grid compact">
                                             <label><input type="checkbox" name="aspirate-ery-size" value="Normoblastic maturation"> Normoblastic maturation</label>
                                             <label><input type="checkbox" name="aspirate-ery-size" value="Megaloblastic change (large cells with open chromatin)"> Megaloblastic change (large cells with open chromatin)</label>
-                                            <label><input type="checkbox" name="aspirate-ery-size" value="Microcytic / Macrocytic erythroblasts"> Microcytic / Macrocytic erythroblasts</label>
+                                             <label><input type="checkbox" name="aspirate-ery-size" value="Microcytic erythroblasts"> Microcytic erythroblasts</label>
+                                             <label><input type="checkbox" name="aspirate-ery-size" value="Macrocytic erythroblasts"> Macrocytic erythroblasts</label>
                                             <label><input type="checkbox" name="aspirate-ery-size" value="Irregular nuclear shapes (nuclear budding, multinuclearity)"> Irregular nuclear shapes (nuclear budding, multinuclearity)</label>
                                         </div>
                                     </div>
@@ -514,7 +575,9 @@
                                     <div class="descriptor-category">
                                         <h6>Cytoplasmic Features</h6>
                                         <div class="checkbox-grid compact">
-                                            <label><input type="checkbox" name="aspirate-ery-cytoplasm" value="Basophilic vs polychromatic vs orthochromatic cytoplasm"> Basophilic vs polychromatic vs orthochromatic cytoplasm</label>
+                                             <label><input type="checkbox" name="aspirate-ery-cytoplasm" value="Basophilic cytoplasm"> Basophilic cytoplasm</label>
+                                             <label><input type="checkbox" name="aspirate-ery-cytoplasm" value="Polychromatic cytoplasm"> Polychromatic cytoplasm</label>
+                                             <label><input type="checkbox" name="aspirate-ery-cytoplasm" value="Orthochromatic cytoplasm"> Orthochromatic cytoplasm</label>
                                             <label><input type="checkbox" name="aspirate-ery-cytoplasm" value="Vacuolated cytoplasm"> Vacuolated cytoplasm</label>
                                             <label><input type="checkbox" name="aspirate-ery-cytoplasm" value="Reduced hemoglobinization (hypochromia)"> Reduced hemoglobinization (hypochromia)</label>
                                         </div>
@@ -544,9 +607,10 @@
                                 <div class="form-group">
                                     <label>Myeloid lineage</label>
                                     <div class="radio-group">
-                                        <label><input type="radio" name="aspirate-myeloid" value="adequate"> adequate</label>
-                                        <label><input type="radio" name="aspirate-myeloid" value="decreased"> decreased</label>
-                                        <label><input type="radio" name="aspirate-myeloid" value="increased" checked> increased</label>
+                                        <label><input type="radio" name="aspirate-myeloid" value="complete"> complete</label>
+                                        <label><input type="radio" name="aspirate-myeloid" value="left-shifted"> left-shifted</label>
+                                        <label><input type="radio" name="aspirate-myeloid" value="dysplastic/atypical" checked> dysplastic/atypical</label>
+                                        <label><input type="radio" name="aspirate-myeloid" value="maturation is complete and without significant abnormalities"> maturation is complete and without significant abnormalities</label>
                                     </div>
                                 </div>
                             </div>
@@ -626,7 +690,8 @@
                                     <div class="descriptor-category">
                                         <h6>Nuclear Features</h6>
                                         <div class="checkbox-grid compact">
-                                            <label><input type="checkbox" name="aspirate-lymph-nuclear" value="Round vs irregular nuclear contours"> Round vs irregular nuclear contours</label>
+                                             <label><input type="checkbox" name="aspirate-lymph-nuclear" value="Round nuclear contours"> Round nuclear contours</label>
+                                             <label><input type="checkbox" name="aspirate-lymph-nuclear" value="Irregular nuclear contours"> Irregular nuclear contours</label>
                                             <label><input type="checkbox" name="aspirate-lymph-nuclear" value="Clumped chromatin (typical of mature cells)"> Clumped chromatin (typical of mature cells)</label>
                                             <label><input type="checkbox" name="aspirate-lymph-nuclear" value="Open chromatin with nucleoli (atypical / blasts)"> Open chromatin with nucleoli (atypical / blasts)</label>
                                         </div>

@@ -183,6 +183,7 @@ textarea {
     border-radius: 4px;
     padding: 8px;
     margin: 8px 0;
+    display: none;
 }
 
 .descriptor-section h4 {
@@ -509,6 +510,63 @@ textarea:focus,
 /* Smooth scrolling */
 html {
     scroll-behavior: smooth;
+}
+
+/* Epic Data Parser Styling */
+.parsing-results {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 12px;
+    margin-top: 12px;
+}
+
+.parsed-section {
+    margin-bottom: 12px;
+    padding: 8px;
+    background: white;
+    border-radius: 4px;
+    border: 1px solid #e1e8ed;
+}
+
+.parsed-section h5 {
+    color: #495057;
+    font-size: 0.9rem;
+    margin: 0 0 6px 0;
+    font-weight: 600;
+}
+
+.parsing-errors {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    padding: 8px;
+    margin-top: 8px;
+}
+
+.parsing-errors h5 {
+    color: #721c24;
+    margin: 0 0 6px 0;
+}
+
+.parsed-value {
+    display: inline-block;
+    background: #e9ecef;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin: 2px;
+    font-size: 0.8rem;
+    border: 1px solid #ced4da;
+}
+
+.parsed-value strong {
+    color: #495057;
+}
+
+#epic-data-input {
+    min-height: 120px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
 }
 
 /* Custom scrollbar */

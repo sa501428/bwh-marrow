@@ -1,3 +1,164 @@
+// Epic Data Parser - Enhanced version to handle complex Epic formats
+class EpicDataParser {
+    constructor() {
+        // Enhanced CBC patterns to handle Epic format with flags
+        this.cbcPatterns = {
+            date: /(\d{1,2}\/\d{1,2}\/\d{2,4}|\d{1,2}-\d{1,2}-\d{2,4})/,
+            wbc: /WBC[:\s]*(\d+\.?\d*)/i,
+            rbc: /RBC[:\s]*(\d+\.?\d*)/i,
+            hgb: /H[GH]B[:\s]*(\d+\.?\d*)/i,
+            hct: /HCT[:\s]*(\d+\.?\d*)/i,
+            mcv: /MCV[:\s]*(\d+\.?\d*)/i,
+            mch: /MCH[:\s]*(\d+\.?\d*)/i,
+            mchc: /MCHC[:\s]*(\d+\.?\d*)/i,
+            plt: /PLT[:\s]*(\d+\.?\d*)/i,
+            mpv: /MPV[:\s]*(\d+\.?\d*)/i,
+            rdw: /RDW[:\s]*(\d+\.?\d*)/i
+        };
+
+        // Morphology and special findings patterns
+        this.morphologyPatterns = {
+            toxicGranulation: /Toxic\s+Granulation[:\s]*([A-Z]+)/i,
+            giantPlatelets: /PLTS,\s*giant[:\s]*([A-Z]+)/i,
+            rbcMorph: /RBC\s+MORPH[:\s]*([A-Z\s]+)/i,
+            atypicalLymphs: /Lymphs,\s*atypical\/reactive[:\s]*(\d+\.?\d*)/i
+        };
+    }
+
+    parseCBC(text) {
+        const results = {};
+        if (!text) return results;
+
+        // Parse CBC values
+        Object.keys(this.cbcPatterns).forEach(key => {
+            const match = text.match(this.cbcPatterns[key]);
+            if (match) {
+                results[key] = key === 'date' ? match[1] : parseFloat(match[1]);
+            }
+        });
+
+        return results;
+    }
+
+    parseDifferential(text) {
+        const results = {};
+        if (!text) return results;
+
+        // Check if differential was performed
+        const diffMethodMatch = text.match(/Diff Method[:\s]*(.+)/i);
+        const diffMethod = diffMethodMatch ? diffMethodMatch[1].trim() : null;
+        
+        if (diffMethod && diffMethod.includes('not performed')) {
+            results.diffMethod = diffMethod;
+            return results;
+        }
+
+        results.diffMethod = diffMethod || 'Unknown';
+
+        // Flexible differential parsing - looks for any percentage followed by cell type
+        // This handles both auto and manual differentials dynamically
+        const lines = text.split('\n');
+        
+        for (const line of lines) {
+            // Skip absolute count lines (those with #)
+            if (line.includes('#') && !line.includes('NRBC#')) continue;
+            
+            // Match percentage patterns: "CellType: XX.X" or "CellType (qualifier): XX.X"
+            const percentMatch = line.match(/^([^:]+?)(?:\s*\([^)]*\))?\s*:\s*(\d+\.?\d*)/);
+            
+            if (percentMatch) {
+                const cellType = percentMatch[1].trim();
+                const percentage = parseFloat(percentMatch[2]);
+                
+                // Normalize cell type names
+                const normalizedType = this.normalizeCellType(cellType);
+                if (normalizedType && !isNaN(percentage)) {
+                    results[normalizedType] = percentage;
+                }
+            }
+        }
+
+        return results;
+    }
+
+    parseMorphology(text) {
+        const results = {};
+        if (!text) return results;
+
+        // Parse morphology findings
+        Object.keys(this.morphologyPatterns).forEach(key => {
+            const match = text.match(this.morphologyPatterns[key]);
+            if (match) {
+                results[key] = match[1].trim();
+            }
+        });
+
+        // Parse NRBC separately as it's important
+        const nrbcMatch = text.match(/NRBC%[^:]*:\s*(\d+\.?\d*)/i);
+        if (nrbcMatch) {
+            results.nrbc = parseFloat(nrbcMatch[1]);
+        }
+
+        return results;
+    }
+
+    normalizeCellType(cellType) {
+        const normalized = cellType.toLowerCase().trim();
+        
+        // Map various cell type names to standard names
+        const typeMap = {
+            'neutrophils': 'neutrophils',
+            'neutrophil': 'neutrophils',
+            'polys': 'neutrophils',
+            'poly': 'neutrophils',
+            'lymphs': 'lymphocytes',
+            'lymphocytes': 'lymphocytes',
+            'lymph': 'lymphocytes',
+            'monos': 'monocytes',
+            'monocytes': 'monocytes',
+            'mono': 'monocytes',
+            'eos': 'eosinophils',
+            'eosinophils': 'eosinophils',
+            'eosinophil': 'eosinophils',
+            'basos': 'basophils',
+            'basophils': 'basophils',
+            'basophil': 'basophils',
+            'basos (auto)': 'basophils',
+            'bands': 'bands',
+            'band': 'bands',
+            'blasts': 'blasts',
+            'blast': 'blasts',
+            'metamyelocytes': 'metamyelocytes',
+            'metamyelo': 'metamyelocytes',
+            'meta': 'metamyelocytes',
+            'myelocytes': 'myelocytes',
+            'myelo': 'myelocytes',
+            'promyelocytes': 'promyelocytes',
+            'promyelo': 'promyelocytes',
+            'other': 'other',
+            'unknown': 'unknown',
+            'atypical lymphs': 'atypical_lymphocytes',
+            'reactive lymphs': 'atypical_lymphocytes',
+            'lymphs, atypical/reactive (auto)': 'atypical_lymphocytes'
+        };
+
+        return typeMap[normalized] || null;
+    }
+
+    parseAll(text) {
+        const cbc = this.parseCBC(text);
+        const differential = this.parseDifferential(text);
+        const morphology = this.parseMorphology(text);
+        
+        return {
+            cbc,
+            differential,
+            morphology,
+            raw: text
+        };
+    }
+}
+
 // Main application functionality
 class MarrowReportApp {
     constructor() {
@@ -28,6 +189,8 @@ class MarrowReportApp {
         
         // Setup abnormal cells toggle functionality
         this.setupAbnormalToggle();
+
+
     }
 
     setupAbnormalToggle() {
@@ -36,6 +199,8 @@ class MarrowReportApp {
             coreToggle.addEventListener('change', () => {
                 this.toggleAbnormalSections('core', coreToggle.checked);
             });
+            // Initialize to current state on load
+            this.toggleAbnormalSections('core', coreToggle.checked);
         }
         
         const aspirateToggle = document.getElementById('aspirate-abnormal-toggle');
@@ -43,12 +208,15 @@ class MarrowReportApp {
             aspirateToggle.addEventListener('change', () => {
                 this.toggleAbnormalSections('aspirate', aspirateToggle.checked);
             });
+            // Initialize to current state on load
+            this.toggleAbnormalSections('aspirate', aspirateToggle.checked);
         }
     }
 
     toggleAbnormalSections(context, show) {
         // Only toggle the detailed descriptor sections, not the entire cell type sections
-        const descriptorSections = document.querySelectorAll(`#${context}-megakaryocytes .descriptor-section, #${context}-erythroid .descriptor-section, #${context}-myeloid .descriptor-section, #${context}-lymphocytes .descriptor-section`);
+        const extraCoreSelector = context === 'core' ? ', #core-architecture .descriptor-section' : '';
+        const descriptorSections = document.querySelectorAll(`#${context}-megakaryocytes .descriptor-section, #${context}-erythroid .descriptor-section, #${context}-myeloid .descriptor-section, #${context}-lymphocytes .descriptor-section${extraCoreSelector}`);
         
         descriptorSections.forEach(section => {
             if (show) {
@@ -191,7 +359,7 @@ class MarrowReportApp {
 
     loadDefaultValues() {
         // Set some default values based on the images
-        document.getElementById('clinical-summary').value = 'MDS s/p SCT';
+
         document.getElementById('limitations').value = 'fragmented';
     }
 
@@ -257,30 +425,12 @@ class MarrowReportApp {
     buildReport() {
         try {
             let report = 'A. BONE MARROW, BIOPSY:\n';
-            report += 'Please enter a diagnosis\n';
+            report += 'Please enter a diagnosis\n\n';
             
-            // Case Overview Section
-            const accession = this.getValue('accession');
-            if (accession) {
-                report += `Accession #: ${accession}\n`;
+            // CBC Section (if parsed from Epic data)
+            if (window.cbcParagraph && window.cbcParagraph.trim()) {
+                report += window.cbcParagraph + '\n\n';
             }
-            
-            const laterality = this.getSelectedRadioValue('laterality');
-            if (laterality && laterality !== 'do not report') {
-                report += `Laterality: ${laterality}\n`;
-            }
-            
-            const specimens = this.getSelectedCheckboxValues('specimens');
-            if (specimens.length > 0) {
-                report += `Specimens: ${specimens.join(', ')}\n`;
-            }
-            
-            const clinicalSummary = this.getValue('clinical-summary');
-            if (clinicalSummary) {
-                report += `Clinical Summary: ${clinicalSummary}\n`;
-            }
-            
-            report += '_________________________________________________________________\n\n';
             
             // Core Biopsy Section
             report += 'CORE BIOPSY:\n';
@@ -293,91 +443,120 @@ class MarrowReportApp {
             
             // Core Biopsy - Megakaryocytes
             const coreMegakaryocytes = this.getSelectedRadioValue('core-megakaryocytes');
-            if (coreMegakaryocytes) {
-                report += `Megakaryocytes: ${coreMegakaryocytes}.\n`;
-            }
-            
-            // Add detailed core megakaryocyte descriptors if any are selected
-            const coreMegSize = this.getSelectedCheckboxValues('core-meg-size');
-            const coreMegNuclear = this.getSelectedCheckboxValues('core-meg-nuclear');
-            const coreMegCytoplasm = this.getSelectedCheckboxValues('core-meg-cytoplasm');
-            const coreMegOther = this.getSelectedCheckboxValues('core-meg-other');
-            
-            if (coreMegSize.length > 0 || coreMegNuclear.length > 0 || coreMegCytoplasm.length > 0 || coreMegOther.length > 0) {
-                report += 'Megakaryocyte features include: ';
-                const megFeatures = [...coreMegSize, ...coreMegNuclear, ...coreMegCytoplasm, ...coreMegOther];
-                report += megFeatures.join(', ') + '.\n';
-            }
-            
+            const coreMegIhc = this.getValue('core-megakaryocyte-ihc');
             const coreMegDescription = this.getValue('core-megakaryocyte-description');
-            if (coreMegDescription) {
-                report += `Additional megakaryocyte findings: ${coreMegDescription}.\n`;
+            
+            // Build megakaryocyte sentence
+            if (coreMegakaryocytes) {
+                let megSentence = `Megakaryocytes are ${coreMegakaryocytes}`;
+                
+                // Add detailed descriptors in narrative form
+                const coreMegSize = this.getSelectedCheckboxValues('core-meg-size');
+                const coreMegNuclear = this.getSelectedCheckboxValues('core-meg-nuclear');
+                const coreMegCytoplasm = this.getSelectedCheckboxValues('core-meg-cytoplasm');
+                const coreMegOther = this.getSelectedCheckboxValues('core-meg-other');
+                
+                const allMegFeatures = [...coreMegSize, ...coreMegNuclear, ...coreMegCytoplasm, ...coreMegOther];
+                if (allMegFeatures.length > 0) {
+                    megSentence += ` with ${allMegFeatures.join(', ')}`;
+                }
+                
+                if (coreMegIhc) {
+                    megSentence += `. Megakaryocyte IHC shows ${coreMegIhc}`;
+                }
+                
+                if (coreMegDescription) {
+                    megSentence += `. ${coreMegDescription}`;
+                }
+                
+                report += megSentence + '.\n';
             }
             
             // Core Biopsy - Erythroid Lineage
             const coreErythroid = this.getSelectedRadioValue('core-erythroid');
-            if (coreErythroid) {
-                report += `Erythroid lineage: ${coreErythroid}.\n`;
-            }
-            
-            // Add detailed core erythroid descriptors if any are selected
-            const coreErySize = this.getSelectedCheckboxValues('core-ery-size');
-            const coreEryNuclear = this.getSelectedCheckboxValues('core-ery-nuclear');
-            const coreEryCytoplasm = this.getSelectedCheckboxValues('core-ery-cytoplasm');
-            const coreEryMaturation = this.getSelectedCheckboxValues('core-ery-maturation');
-            
-            if (coreErySize.length > 0 || coreEryNuclear.length > 0 || coreEryCytoplasm.length > 0 || coreEryMaturation.length > 0) {
-                report += 'Erythroid features include: ';
-                const erythroidFeatures = [...coreErySize, ...coreEryNuclear, ...coreEryCytoplasm, ...coreEryMaturation];
-                report += erythroidFeatures.join(', ') + '.\n';
-            }
-            
             const coreEryDescription = this.getValue('core-erythroid-description');
-            if (coreEryDescription) {
-                report += `Additional erythroid findings: ${coreEryDescription}.\n`;
+            
+            if (coreErythroid) {
+                let eryString = `Erythroid lineage maturation is ${coreErythroid}`;
+                
+                // Add detailed descriptors in narrative form
+                const coreErySize = this.getSelectedCheckboxValues('core-ery-size');
+                const coreEryNuclear = this.getSelectedCheckboxValues('core-ery-nuclear');
+                const coreEryCytoplasm = this.getSelectedCheckboxValues('core-ery-cytoplasm');
+                const coreEryMaturation = this.getSelectedCheckboxValues('core-ery-maturation');
+                
+                const allEryFeatures = [...coreErySize, ...coreEryNuclear, ...coreEryCytoplasm, ...coreEryMaturation];
+                if (allEryFeatures.length > 0) {
+                    eryString += ` with features including ${allEryFeatures.join(', ')}`;
+                }
+                
+                if (coreEryDescription) {
+                    eryString += `. ${coreEryDescription}`;
+                }
+                
+                report += eryString + '.\n';
             }
             
             // Core Biopsy - Myeloid Lineage
             const coreMyeloid = this.getSelectedRadioValue('core-myeloid');
-            if (coreMyeloid) {
-                report += `Myeloid lineage: ${coreMyeloid}.\n`;
-            }
-            
-            // Add detailed core myeloid descriptors if any are selected
-            const coreMyelCellularity = this.getSelectedCheckboxValues('core-myel-cellularity');
-            const coreMyelNuclear = this.getSelectedCheckboxValues('core-myel-nuclear');
-            const coreMyelCytoplasm = this.getSelectedCheckboxValues('core-myel-cytoplasm');
-            const coreMyelOther = this.getSelectedCheckboxValues('core-myel-other');
-            
-            if (coreMyelCellularity.length > 0 || coreMyelNuclear.length > 0 || coreMyelCytoplasm.length > 0 || coreMyelOther.length > 0) {
-                report += 'Myeloid features include: ';
-                const myeloidFeatures = [...coreMyelCellularity, ...coreMyelNuclear, ...coreMyelCytoplasm, ...coreMyelOther];
-                report += myeloidFeatures.join(', ') + '.\n';
-            }
-            
             const coreMyelDescription = this.getValue('core-myeloid-description');
-            if (coreMyelDescription) {
-                report += `Additional myeloid findings: ${coreMyelDescription}.\n`;
+            
+            if (coreMyeloid) {
+                let myelString = `Myeloid lineage maturation is ${coreMyeloid}`;
+                
+                // Add detailed descriptors in narrative form
+                const coreMyelCellularity = this.getSelectedCheckboxValues('core-myel-cellularity');
+                const coreMyelNuclear = this.getSelectedCheckboxValues('core-myel-nuclear');
+                const coreMyelCytoplasm = this.getSelectedCheckboxValues('core-myel-cytoplasm');
+                const coreMyelOther = this.getSelectedCheckboxValues('core-myel-other');
+                
+                const allMyelFeatures = [...coreMyelCellularity, ...coreMyelNuclear, ...coreMyelCytoplasm, ...coreMyelOther];
+                if (allMyelFeatures.length > 0) {
+                    myelString += ` with features including ${allMyelFeatures.join(', ')}`;
+                }
+                
+                if (coreMyelDescription) {
+                    myelString += `. ${coreMyelDescription}`;
+                }
+                
+                report += myelString + '.\n';
             }
             
             // Core Biopsy - Lymphocytes & Plasma Cells
-            // Add detailed core lymphocyte descriptors if any are selected
             const coreLymphSize = this.getSelectedCheckboxValues('core-lymph-size');
             const coreLymphNuclear = this.getSelectedCheckboxValues('core-lymph-nuclear');
             const coreLymphCytoplasm = this.getSelectedCheckboxValues('core-lymph-cytoplasm');
             const coreLymphDistribution = this.getSelectedCheckboxValues('core-lymph-distribution');
-            
-            if (coreLymphSize.length > 0 || coreLymphNuclear.length > 0 || coreLymphCytoplasm.length > 0 || coreLymphDistribution.length > 0) {
-                report += 'Lymphocyte/plasma cell features include: ';
-                const lymphFeatures = [...coreLymphSize, ...coreLymphNuclear, ...coreLymphCytoplasm, ...coreLymphDistribution];
-                report += lymphFeatures.join(', ') + '.\n';
-            }
-            
             const coreLymphDescription = this.getValue('core-lymphocytes-description');
-            if (coreLymphDescription) {
-                report += `Additional lymphocyte/plasma cell findings: ${coreLymphDescription}.\n`;
-            }
             
+            const allLymphFeatures = [...coreLymphSize, ...coreLymphNuclear, ...coreLymphCytoplasm, ...coreLymphDistribution];
+            if (allLymphFeatures.length > 0) {
+                let lymphString = `Lymphocytes and plasma cells demonstrate ${allLymphFeatures.join(', ')}`;
+                
+                if (coreLymphDescription) {
+                    lymphString += `. ${coreLymphDescription}`;
+                }
+                
+                report += lymphString + '.\n';
+            } else if (coreLymphDescription) {
+                report += `Lymphocytes and plasma cells: ${coreLymphDescription}.\n`;
+            }
+
+            // Core Biopsy - Architecture & Other Findings
+            const coreArchAggregates = this.getSelectedCheckboxValues('core-arch-aggregates');
+            const coreArchHemosiderin = this.getSelectedCheckboxValues('core-arch-hemosiderin');
+            const coreArchOther = this.getSelectedCheckboxValues('core-arch-other');
+            
+            if (coreArchAggregates.length > 0) {
+                report += `Lymphoid aggregates: ${coreArchAggregates.join(', ')}.\n`;
+            }
+            if (coreArchHemosiderin.length > 0) {
+                report += `Hemosiderin-laden macrophages: ${coreArchHemosiderin.join(', ')}.\n`;
+            }
+            if (coreArchOther.length > 0) {
+                report += `Other core findings: ${coreArchOther.join(', ')}.\n`;
+            }
+
             report += '\n';
             
             // Aspirate Section
@@ -396,97 +575,102 @@ class MarrowReportApp {
             
             // Aspirate - Megakaryocytes
             const aspirateMegakaryocytes = this.getSelectedRadioValue('aspirate-megakaryocytes');
-            if (aspirateMegakaryocytes) {
-                report += `Megakaryocytes: ${aspirateMegakaryocytes}.\n`;
-            }
-            
-            // Add detailed aspirate megakaryocyte descriptors if any are selected
-            const aspirateMegSize = this.getSelectedCheckboxValues('aspirate-meg-size');
-            const aspirateMegNuclear = this.getSelectedCheckboxValues('aspirate-meg-nuclear');
-            const aspirateMegCytoplasm = this.getSelectedCheckboxValues('aspirate-meg-cytoplasm');
-            const aspirateMegOther = this.getSelectedCheckboxValues('aspirate-meg-other');
-            
-            if (aspirateMegSize.length > 0 || aspirateMegNuclear.length > 0 || aspirateMegCytoplasm.length > 0 || aspirateMegOther.length > 0) {
-                report += 'Megakaryocyte features include: ';
-                const megFeatures = [...aspirateMegSize, ...aspirateMegNuclear, ...aspirateMegCytoplasm, ...aspirateMegOther];
-                report += megFeatures.join(', ') + '.\n';
-            }
-            
             const aspirateMegDescription = this.getValue('aspirate-megakaryocyte-description');
-            if (aspirateMegDescription) {
-                report += `Additional megakaryocyte findings: ${aspirateMegDescription}.\n`;
+            
+            if (aspirateMegakaryocytes) {
+                let aspirateMegSentence = `Megakaryocytes are ${aspirateMegakaryocytes}`;
+                
+                // Add detailed descriptors in narrative form
+                const aspirateMegSize = this.getSelectedCheckboxValues('aspirate-meg-size');
+                const aspirateMegNuclear = this.getSelectedCheckboxValues('aspirate-meg-nuclear');
+                const aspirateMegCytoplasm = this.getSelectedCheckboxValues('aspirate-meg-cytoplasm');
+                const aspirateMegOther = this.getSelectedCheckboxValues('aspirate-meg-other');
+                
+                const allAspirateMegFeatures = [...aspirateMegSize, ...aspirateMegNuclear, ...aspirateMegCytoplasm, ...aspirateMegOther];
+                if (allAspirateMegFeatures.length > 0) {
+                    aspirateMegSentence += ` with ${allAspirateMegFeatures.join(', ')}`;
+                }
+                
+                if (aspirateMegDescription) {
+                    aspirateMegSentence += `. ${aspirateMegDescription}`;
+                }
+                
+                report += aspirateMegSentence + '.\n';
             }
             
             // Aspirate - Erythroid Lineage
             const aspirateErythroid = this.getSelectedRadioValue('aspirate-erythroid');
-            if (aspirateErythroid) {
-                report += `Erythroid lineage: ${aspirateErythroid}.\n`;
-            }
-            
-            // Add detailed aspirate erythroid descriptors if any are selected
-            const aspirateErySize = this.getSelectedCheckboxValues('aspirate-ery-size');
-            const aspirateEryNuclear = this.getSelectedCheckboxValues('aspirate-ery-nuclear');
-            const aspirateEryCytoplasm = this.getSelectedCheckboxValues('aspirate-ery-cytoplasm');
-            const aspirateEryMaturation = this.getSelectedCheckboxValues('aspirate-ery-maturation');
-            
-            if (aspirateErySize.length > 0 || aspirateEryNuclear.length > 0 || aspirateEryCytoplasm.length > 0 || aspirateEryMaturation.length > 0) {
-                report += 'Erythroid features include: ';
-                const erythroidFeatures = [...aspirateErySize, ...aspirateEryNuclear, ...aspirateEryCytoplasm, ...aspirateEryMaturation];
-                report += erythroidFeatures.join(', ') + '.\n';
-            }
-            
             const aspirateEryDescription = this.getValue('aspirate-erythroid-description');
-            if (aspirateEryDescription) {
-                report += `Additional erythroid findings: ${aspirateEryDescription}.\n`;
+            
+            if (aspirateErythroid) {
+                let aspirateEryString = `Erythroid lineage maturation is ${aspirateErythroid}`;
+                
+                // Add detailed descriptors in narrative form
+                const aspirateErySize = this.getSelectedCheckboxValues('aspirate-ery-size');
+                const aspirateEryNuclear = this.getSelectedCheckboxValues('aspirate-ery-nuclear');
+                const aspirateEryCytoplasm = this.getSelectedCheckboxValues('aspirate-ery-cytoplasm');
+                const aspirateEryMaturation = this.getSelectedCheckboxValues('aspirate-ery-maturation');
+                
+                const allAspirateEryFeatures = [...aspirateErySize, ...aspirateEryNuclear, ...aspirateEryCytoplasm, ...aspirateEryMaturation];
+                if (allAspirateEryFeatures.length > 0) {
+                    aspirateEryString += ` with features including ${allAspirateEryFeatures.join(', ')}`;
+                }
+                
+                if (aspirateEryDescription) {
+                    aspirateEryString += `. ${aspirateEryDescription}`;
+                }
+                
+                report += aspirateEryString + '.\n';
             }
             
             // Aspirate - Myeloid Lineage
             const aspirateMyeloid = this.getSelectedRadioValue('aspirate-myeloid');
-            if (aspirateMyeloid) {
-                report += `Myeloid lineage: ${aspirateMyeloid}.\n`;
-            }
-            
-            // Add detailed aspirate myeloid descriptors if any are selected
-            const aspirateMyelCellularity = this.getSelectedCheckboxValues('aspirate-myel-cellularity');
-            const aspirateMyelNuclear = this.getSelectedCheckboxValues('aspirate-myel-nuclear');
-            const aspirateMyelCytoplasm = this.getSelectedCheckboxValues('aspirate-myel-cytoplasm');
-            const aspirateMyelOther = this.getSelectedCheckboxValues('aspirate-myel-other');
-            
-            if (aspirateMyelCellularity.length > 0 || aspirateMyelNuclear.length > 0 || aspirateMyelCytoplasm.length > 0 || aspirateMyelOther.length > 0) {
-                report += 'Myeloid features include: ';
-                const myeloidFeatures = [...aspirateMyelCellularity, ...aspirateMyelNuclear, ...aspirateMyelCytoplasm, ...aspirateMyelOther];
-                report += myeloidFeatures.join(', ') + '.\n';
-            }
-            
             const aspirateMyelDescription = this.getValue('aspirate-myeloid-description');
-            if (aspirateMyelDescription) {
-                report += `Additional myeloid findings: ${aspirateMyelDescription}.\n`;
+            
+            if (aspirateMyeloid) {
+                let aspirateMyelString = `Myeloid lineage maturation is ${aspirateMyeloid}`;
+                
+                // Add detailed descriptors in narrative form
+                const aspirateMyelCellularity = this.getSelectedCheckboxValues('aspirate-myel-cellularity');
+                const aspirateMyelNuclear = this.getSelectedCheckboxValues('aspirate-myel-nuclear');
+                const aspirateMyelCytoplasm = this.getSelectedCheckboxValues('aspirate-myel-cytoplasm');
+                const aspirateMyelOther = this.getSelectedCheckboxValues('aspirate-myel-other');
+                
+                const allAspirateMyelFeatures = [...aspirateMyelCellularity, ...aspirateMyelNuclear, ...aspirateMyelCytoplasm, ...aspirateMyelOther];
+                if (allAspirateMyelFeatures.length > 0) {
+                    aspirateMyelString += ` with features including ${allAspirateMyelFeatures.join(', ')}`;
+                }
+                
+                if (aspirateMyelDescription) {
+                    aspirateMyelString += `. ${aspirateMyelDescription}`;
+                }
+                
+                report += aspirateMyelString + '.\n';
             }
             
             // Aspirate - Lymphocytes & Plasma Cells
-            // Add detailed aspirate lymphocyte descriptors if any are selected
             const aspirateLymphSize = this.getSelectedCheckboxValues('aspirate-lymph-size');
             const aspirateLymphNuclear = this.getSelectedCheckboxValues('aspirate-lymph-nuclear');
             const aspirateLymphCytoplasm = this.getSelectedCheckboxValues('aspirate-lymph-cytoplasm');
             const aspirateLymphDistribution = this.getSelectedCheckboxValues('aspirate-lymph-distribution');
-            
-            if (aspirateLymphSize.length > 0 || aspirateLymphNuclear.length > 0 || aspirateLymphCytoplasm.length > 0 || aspirateLymphDistribution.length > 0) {
-                report += 'Lymphocyte/plasma cell features include: ';
-                const lymphFeatures = [...aspirateLymphSize, ...aspirateLymphNuclear, ...aspirateLymphCytoplasm, ...aspirateLymphDistribution];
-                report += lymphFeatures.join(', ') + '.\n';
-            }
-            
             const aspirateLymphDescription = this.getValue('aspirate-lymphocytes-description');
-            if (aspirateLymphDescription) {
-                report += `Additional lymphocyte/plasma cell findings: ${aspirateLymphDescription}.\n`;
+            
+            const allAspirateLymphFeatures = [...aspirateLymphSize, ...aspirateLymphNuclear, ...aspirateLymphCytoplasm, ...aspirateLymphDistribution];
+            if (allAspirateLymphFeatures.length > 0) {
+                let aspirateLymphString = `Lymphocytes and plasma cells demonstrate ${allAspirateLymphFeatures.join(', ')}`;
+                
+                if (aspirateLymphDescription) {
+                    aspirateLymphString += `. ${aspirateLymphDescription}`;
+                }
+                
+                report += aspirateLymphString + '.\n';
+            } else if (aspirateLymphDescription) {
+                report += `Lymphocytes and plasma cells: ${aspirateLymphDescription}.\n`;
             }
             
             report += '\n';
             
-            // Clinical Summary Section
-            if (clinicalSummary) {
-                report += `(Clinical summary: ${clinicalSummary})\n`;
-            }
+
             
             return report;
             
@@ -730,6 +914,212 @@ class MarrowReportApp {
             }
         }
     }
+}
+
+// Epic Data Parser Global Functions
+window.epicParser = new EpicDataParser();
+
+function parseEpicData() {
+    const inputText = document.getElementById('epic-data-input').value;
+    const resultsDiv = document.getElementById('parsing-results');
+    const cbcDiv = document.getElementById('cbc-values');
+    const autoDiffDiv = document.getElementById('auto-diff-values');
+    const manualDiffDiv = document.getElementById('manual-diff-values');
+    const errorsDiv = document.getElementById('parsing-errors');
+    const errorMessages = document.getElementById('error-messages');
+
+    if (!inputText.trim()) {
+        alert('Please enter some Epic data to parse.');
+        return;
+    }
+
+    try {
+        const parsed = window.epicParser.parseAll(inputText);
+        
+        // Show results section
+        resultsDiv.style.display = 'block';
+        
+        // Display CBC results
+        cbcDiv.innerHTML = '';
+        if (Object.keys(parsed.cbc).length > 0) {
+            Object.keys(parsed.cbc).forEach(key => {
+                const value = parsed.cbc[key];
+                const span = document.createElement('span');
+                span.className = 'parsed-value';
+                span.innerHTML = `<strong>${key.toUpperCase()}:</strong> ${value}`;
+                cbcDiv.appendChild(span);
+            });
+        } else {
+            cbcDiv.innerHTML = '<em>No CBC data found</em>';
+        }
+        
+        // Display Differential results (combined auto/manual)
+        autoDiffDiv.innerHTML = '<h5>Differential Results:</h5>';
+        const diffData = parsed.differential;
+        
+        if (diffData.diffMethod) {
+            const methodSpan = document.createElement('div');
+            methodSpan.style.fontStyle = 'italic';
+            methodSpan.style.marginBottom = '8px';
+            methodSpan.innerHTML = `Method: ${diffData.diffMethod}`;
+            autoDiffDiv.appendChild(methodSpan);
+        }
+        
+        if (diffData.diffMethod && diffData.diffMethod.includes('not performed')) {
+            autoDiffDiv.innerHTML += '<em>Differential not performed</em>';
+        } else {
+            const diffKeys = Object.keys(diffData).filter(key => key !== 'diffMethod');
+            if (diffKeys.length > 0) {
+                diffKeys.forEach(key => {
+                    const value = diffData[key];
+                    const span = document.createElement('span');
+                    span.className = 'parsed-value';
+                    span.innerHTML = `<strong>${key.replace('_', ' ')}:</strong> ${value}%`;
+                    autoDiffDiv.appendChild(span);
+                });
+            } else {
+                autoDiffDiv.innerHTML += '<em>No differential data found</em>';
+            }
+        }
+        
+        // Display Morphology results
+        manualDiffDiv.innerHTML = '<h5>Morphology & Special Findings:</h5>';
+        const morphData = parsed.morphology;
+        
+        if (Object.keys(morphData).length > 0) {
+            Object.keys(morphData).forEach(key => {
+                const value = morphData[key];
+                const span = document.createElement('span');
+                span.className = 'parsed-value';
+                if (key === 'nrbc') {
+                    span.innerHTML = `<strong>NRBC:</strong> ${value}%`;
+                } else {
+                    span.innerHTML = `<strong>${key.replace(/([A-Z])/g, ' $1').trim()}:</strong> ${value}`;
+                }
+                manualDiffDiv.appendChild(span);
+            });
+        } else {
+            manualDiffDiv.innerHTML += '<em>No morphology findings</em>';
+        }
+        
+        // Hide errors if parsing was successful
+        errorsDiv.style.display = 'none';
+        
+        // Generate narrative paragraph
+        generateCBCParagraph(parsed);
+        
+    } catch (error) {
+        console.error('Parsing error:', error);
+        errorsDiv.style.display = 'block';
+        errorMessages.innerHTML = `<div style="color: #721c24;">Error parsing data: ${error.message}</div>`;
+    }
+}
+
+function clearEpicData() {
+    document.getElementById('epic-data-input').value = '';
+    document.getElementById('parsing-results').style.display = 'none';
+}
+
+function generateCBCParagraph(parsed) {
+    let paragraph = '';
+    
+    // CBC paragraph
+    if (Object.keys(parsed.cbc).length > 0) {
+        const cbc = parsed.cbc;
+        if (cbc.date) {
+            paragraph += `CBC results from ${cbc.date} are as follows: `;
+        } else {
+            paragraph += 'CBC results are as follows: ';
+        }
+        
+        const cbcParts = [];
+        if (cbc.wbc) cbcParts.push(`WBC ${cbc.wbc} K/μL`);
+        if (cbc.rbc) cbcParts.push(`RBC ${cbc.rbc} M/μL`);
+        if (cbc.hgb) cbcParts.push(`HGB ${cbc.hgb} g/dL`);
+        if (cbc.hct) cbcParts.push(`HCT ${cbc.hct}%`);
+        if (cbc.mcv) cbcParts.push(`MCV ${cbc.mcv} fL`);
+        if (cbc.mch) cbcParts.push(`MCH ${cbc.mch} pg`);
+        if (cbc.mchc) cbcParts.push(`MCHC ${cbc.mchc} g/dL`);
+        if (cbc.plt) cbcParts.push(`PLT ${cbc.plt} K/μL`);
+        if (cbc.rdw) cbcParts.push(`RDW ${cbc.rdw}%`);
+        
+        paragraph += cbcParts.join(', ') + '.';
+    }
+    
+    // Differential paragraph
+    const diff = parsed.differential;
+    if (diff && Object.keys(diff).length > 1) { // More than just diffMethod
+        if (diff.diffMethod && diff.diffMethod.includes('not performed')) {
+            paragraph += ` Differential was not performed due to low WBC count.`;
+        } else {
+            const method = diff.diffMethod || 'Unknown method';
+            paragraph += ` ${method} differential`;
+            
+            if (method.toLowerCase().includes('auto')) {
+                paragraph += ' shows ';
+            } else if (method.toLowerCase().includes('manual')) {
+                paragraph += ' demonstrates ';
+            } else {
+                paragraph += ' shows ';
+            }
+            
+            const diffParts = [];
+            
+            // Order cell types for better readability
+            const orderedTypes = ['neutrophils', 'bands', 'lymphocytes', 'atypical_lymphocytes', 'monocytes', 
+                                'eosinophils', 'basophils', 'metamyelocytes', 'myelocytes', 'promyelocytes', 'blasts', 'other'];
+            
+            orderedTypes.forEach(type => {
+                if (diff[type] !== undefined) {
+                    const displayName = type.replace('_', ' ');
+                    diffParts.push(`${diff[type]}% ${displayName}`);
+                }
+            });
+            
+            paragraph += diffParts.join(', ') + '.';
+        }
+    }
+    
+    // Morphology findings
+    const morph = parsed.morphology;
+    if (morph && Object.keys(morph).length > 0) {
+        const morphParts = [];
+        
+        if (morph.nrbc) {
+            morphParts.push(`${morph.nrbc}% nucleated red blood cells`);
+        }
+        if (morph.toxicGranulation && morph.toxicGranulation.toLowerCase() === 'present') {
+            morphParts.push('toxic granulation');
+        }
+        if (morph.giantPlatelets && morph.giantPlatelets.toLowerCase() === 'present') {
+            morphParts.push('giant platelets');
+        }
+        if (morph.atypicalLymphs) {
+            morphParts.push(`${morph.atypicalLymphs}% atypical/reactive lymphocytes`);
+        }
+        if (morph.rbcMorph && morph.rbcMorph.toLowerCase() !== 'normal' && morph.rbcMorph.toLowerCase() !== 'completed') {
+            morphParts.push(`RBC morphology: ${morph.rbcMorph.toLowerCase()}`);
+        }
+        
+        if (morphParts.length > 0) {
+            paragraph += ` Notable findings include ${morphParts.join(', ')}.`;
+        }
+    }
+    
+    // Store the paragraph globally so it can be used in report generation
+    window.cbcParagraph = paragraph;
+    
+    // Add a section to show the generated paragraph
+    let paragraphDiv = document.getElementById('generated-paragraph');
+    if (!paragraphDiv) {
+        paragraphDiv = document.createElement('div');
+        paragraphDiv.id = 'generated-paragraph';
+        paragraphDiv.className = 'parsed-section';
+        paragraphDiv.innerHTML = '<h5>Generated Paragraph:</h5><div id="paragraph-text"></div>';
+        document.getElementById('parsing-results').appendChild(paragraphDiv);
+    }
+    
+    document.getElementById('paragraph-text').innerHTML = `<div style="font-style: italic; padding: 8px; background: #e7f3ff; border: 1px solid #b3d9ff; border-radius: 4px;">${paragraph}</div>`;
 }
 
 // Initialize the application when the DOM is loaded
