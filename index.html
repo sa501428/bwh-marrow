@@ -20,7 +20,7 @@
                 </div>
                 <div class="section-content">
                     <div class="form-group">
-                        <label for="epic-data-input">Paste CBC, Auto Diff, and Manual Diff data from Epic</label>
+                        <label for="epic-data-input">Paste CBC, Auto Diff, and Manual Diff data from Epic (Whole Column)</label>
                         <textarea id="epic-data-input" placeholder="Paste all CBC and differential data here...&#10;&#10;Example:&#10;CBC 04/15/2024&#10;WBC: 8.5 K/uL&#10;HGB: 12.3 g/dL&#10;HCT: 36.8%&#10;PLT: 245 K/uL&#10;&#10;Auto Differential:&#10;Neutrophils: 62.5%&#10;Lymphocytes: 28.3%&#10;Monocytes: 7.2%&#10;&#10;Manual Differential:&#10;Polys: 60%&#10;Bands: 3%&#10;Lymphs: 25%&#10;Blasts: 0%"></textarea>
                     </div>
                     <div class="form-row">
@@ -71,6 +71,39 @@
                         </div>
                     </div>
                     
+                    <div class="subsection">
+                        <h3>Cellularity</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="cellularity">Cellularity</label>
+                                <input type="text" id="cellularity" placeholder="%, can be a range">
+                            </div>
+                            <div class="form-group">
+                                <label>Age-adjusted cellularity</label>
+                                <div class="radio-group">
+                                    <label><input type="radio" name="age-cellularity" value="normocellular"> normocellular</label>
+                                    <label><input type="radio" name="age-cellularity" value="hypocellular"> hypocellular</label>
+                                    <label><input type="radio" name="age-cellularity" value="hypercellular"> hypercellular</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="subsection">
+                        <h3>Myeloid:Erythroid Ratio</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Myeloid:Erythroid (M:E) ratio</label>
+                                <div class="radio-group">
+                                    <label><input type="radio" name="me-ratio" value="normal"> normal</label>
+                                    <label><input type="radio" name="me-ratio" value="increased"> increased</label>
+                                    <label><input type="radio" name="me-ratio" value="decreased"> decreased</label>
+                                    <label><input type="radio" name="me-ratio" value="reversed"> reversed</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <!-- Core Biopsy - Cell Populations -->
                     <div class="subsection">
                         <h3>Cell Populations</h3>
@@ -81,6 +114,144 @@
                                 <input type="checkbox" id="core-abnormal-toggle" class="abnormal-toggle">
                                 <span class="toggle-text">Show Detailed Descriptors</span>
                             </label>
+                        </div>
+                        
+                        <!-- Core Biopsy - Myeloid Lineage -->
+                        <div class="cell-type-section" id="core-myeloid">
+                            <h4>Myeloid Lineage</h4>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Myeloid lineage</label>
+                                    <div class="radio-group">
+                                        <label><input type="radio" name="core-myeloid" value="complete"> complete</label>
+                                        <label><input type="radio" name="core-myeloid" value="left-shifted"> left-shifted</label>
+                                        <label><input type="radio" name="core-myeloid" value="dysplastic/atypical" checked> dysplastic/atypical</label>
+                                        <label><input type="radio" name="core-myeloid" value="maturation is complete and without significant abnormalities"> maturation is complete and without significant abnormalities</label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Detailed Core Biopsy Myeloid Descriptors -->
+                            <div class="descriptor-section collapsible" id="core-myeloid-descriptors">
+                                <div class="section-header-toggle">
+                                    <h5>📋 Detailed Descriptors</h5>
+                                    <button class="toggle-btn" data-target="core-myeloid-descriptors">▼</button>
+                                </div>
+                                <div class="collapsible-content">
+                                    <div class="descriptor-category">
+                                        <h6>Cellularity & Maturation</h6>
+                                        <div class="checkbox-grid compact">
+                                            <label><input type="checkbox" name="core-myel-cellularity" value="Left shift (increased early myeloid precursors)"> Left shift (increased early myeloid precursors)</label>
+                                            <label><input type="checkbox" name="core-myel-cellularity" value="Maturation arrest"> Maturation arrest</label>
+                                            <label><input type="checkbox" name="core-myel-cellularity" value="Normal trilineage hematopoiesis"> Normal trilineage hematopoiesis</label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="descriptor-category">
+                                        <h6>Nuclear Features</h6>
+                                        <div class="checkbox-grid compact">
+                                            <label><input type="checkbox" name="core-myel-nuclear" value="Hyposegmentation (e.g., pseudo–Pelger-Huët anomaly)"> Hyposegmentation (e.g., pseudo–Pelger-Huët anomaly)</label>
+                                            <label><input type="checkbox" name="core-myel-nuclear" value="Hypersegmentation"> Hypersegmentation</label>
+                                            <label><input type="checkbox" name="core-myel-nuclear" value="Irregular nuclear shapes"> Irregular nuclear shapes</label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="descriptor-category">
+                                        <h6>Cytoplasmic Features</h6>
+                                        <div class="checkbox-grid compact">
+                                            <label><input type="checkbox" name="core-myel-cytoplasm" value="Hypogranular cytoplasm"> Hypogranular cytoplasm</label>
+                                            <label><input type="checkbox" name="core-myel-cytoplasm" value="Toxic granulation"> Toxic granulation</label>
+                                            <label><input type="checkbox" name="core-myel-cytoplasm" value="Auer rods (pathologic finding)"> Auer rods (pathologic finding)</label>
+                                            <label><input type="checkbox" name="core-myel-cytoplasm" value="Cytoplasmic vacuolization"> Cytoplasmic vacuolization</label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="descriptor-category">
+                                        <h6>Other</h6>
+                                        <div class="checkbox-grid compact">
+                                            <label><input type="checkbox" name="core-myel-other" value="Dysmyelopoiesis"> Dysmyelopoiesis</label>
+                                            <label><input type="checkbox" name="core-myel-other" value="Abnormal granule distribution"> Abnormal granule distribution</label>
+                                             <label><input type="checkbox" name="core-myel-other" value="Abnormal localization of immature precursors (ALIP)"> Abnormal localization of immature precursors (ALIP)</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="core-myeloid-description">Additional myeloid description</label>
+                                <textarea id="core-myeloid-description" placeholder="Additional findings or specific observations"></textarea>
+                            </div>
+                        </div>
+                        
+                        <!-- Core Biopsy - Erythroid Lineage -->
+                        <div class="cell-type-section" id="core-erythroid">
+                            <h4>Erythroid Lineage</h4>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Erythroid lineage</label>
+                                    <div class="radio-group">
+                                        <label><input type="radio" name="core-erythroid" value="complete"> complete</label>
+                                        <label><input type="radio" name="core-erythroid" value="left-shifted"> left-shifted</label>
+                                        <label><input type="radio" name="core-erythroid" value="dysplastic/atypical" checked> dysplastic/atypical</label>
+                                        <label><input type="radio" name="core-erythroid" value="maturation is complete and without significant abnormalities"> maturation is complete and without significant abnormalities</label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Detailed Core Biopsy Erythroid Descriptors -->
+                            <div class="descriptor-section collapsible" id="core-erythroid-descriptors">
+                                <div class="section-header-toggle">
+                                    <h5>📋 Detailed Descriptors</h5>
+                                    <button class="toggle-btn" data-target="core-erythroid-descriptors">▼</button>
+                                </div>
+                                <div class="collapsible-content">
+                                    <div class="descriptor-category">
+                                        <h6>Cell Size & Shape</h6>
+                                        <div class="checkbox-grid compact">
+                                            <label><input type="checkbox" name="core-ery-size" value="Normoblastic maturation"> Normoblastic maturation</label>
+                                            <label><input type="checkbox" name="core-ery-size" value="Megaloblastic change (large cells with open chromatin)"> Megaloblastic change (large cells with open chromatin)</label>
+                                             <label><input type="checkbox" name="core-ery-size" value="Microcytic erythroblasts"> Microcytic erythroblasts</label>
+                                             <label><input type="checkbox" name="core-ery-size" value="Macrocytic erythroblasts"> Macrocytic erythroblasts</label>
+                                            <label><input type="checkbox" name="core-ery-size" value="Irregular nuclear shapes (nuclear budding, multinuclearity)"> Irregular nuclear shapes (nuclear budding, multinuclearity)</label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="descriptor-category">
+                                        <h6>Nuclear Features</h6>
+                                        <div class="checkbox-grid compact">
+                                            <label><input type="checkbox" name="core-ery-nuclear" value="Open chromatin with nucleoli (immature)"> Open chromatin with nucleoli (immature)</label>
+                                            <label><input type="checkbox" name="core-ery-nuclear" value="Hyperchromatic nuclei"> Hyperchromatic nuclei</label>
+                                            <label><input type="checkbox" name="core-ery-nuclear" value="Fragmented nuclei"> Fragmented nuclei</label>
+                                            <label><input type="checkbox" name="core-ery-nuclear" value="Nuclear budding / bridging"> Nuclear budding / bridging</label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="descriptor-category">
+                                        <h6>Cytoplasmic Features</h6>
+                                        <div class="checkbox-grid compact">
+                                             <label><input type="checkbox" name="core-ery-cytoplasm" value="Basophilic cytoplasm"> Basophilic cytoplasm</label>
+                                             <label><input type="checkbox" name="core-ery-cytoplasm" value="Polychromatic cytoplasm"> Polychromatic cytoplasm</label>
+                                             <label><input type="checkbox" name="core-ery-cytoplasm" value="Orthochromatic cytoplasm"> Orthochromatic cytoplasm</label>
+                                            <label><input type="checkbox" name="core-ery-cytoplasm" value="Vacuolated cytoplasm"> Vacuolated cytoplasm</label>
+                                            <label><input type="checkbox" name="core-ery-cytoplasm" value="Reduced hemoglobinization (hypochromia)"> Reduced hemoglobinization (hypochromia)</label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="descriptor-category">
+                                        <h6>Maturation Pattern</h6>
+                                        <div class="checkbox-grid compact">
+                                            <label><input type="checkbox" name="core-ery-maturation" value="Dyserythropoiesis"> Dyserythropoiesis</label>
+                                            <label><input type="checkbox" name="core-ery-maturation" value="Shift to early or late precursors"> Shift to early or late precursors</label>
+                                            <label><input type="checkbox" name="core-ery-maturation" value="Disordered maturation"> Disordered maturation</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="core-erythroid-description">Additional erythroid description</label>
+                                <textarea id="core-erythroid-description" placeholder="Additional findings or specific observations"></textarea>
+                            </div>
                         </div>
                         
                         <!-- Core Biopsy - Megakaryocytes -->
@@ -160,144 +331,6 @@
                             <div class="form-group">
                                 <label for="core-megakaryocyte-description">Additional megakaryocyte description</label>
                                 <textarea id="core-megakaryocyte-description" placeholder="Additional findings or specific observations"></textarea>
-                            </div>
-                        </div>
-                        
-                        <!-- Core Biopsy - Erythroid Lineage -->
-                        <div class="cell-type-section" id="core-erythroid">
-                            <h4>Erythroid Lineage</h4>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label>Erythroid lineage</label>
-                                    <div class="radio-group">
-                                        <label><input type="radio" name="core-erythroid" value="complete"> complete</label>
-                                        <label><input type="radio" name="core-erythroid" value="left-shifted"> left-shifted</label>
-                                        <label><input type="radio" name="core-erythroid" value="dysplastic/atypical" checked> dysplastic/atypical</label>
-                                        <label><input type="radio" name="core-erythroid" value="maturation is complete and without significant abnormalities"> maturation is complete and without significant abnormalities</label>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Detailed Core Biopsy Erythroid Descriptors -->
-                            <div class="descriptor-section collapsible" id="core-erythroid-descriptors">
-                                <div class="section-header-toggle">
-                                    <h5>📋 Detailed Descriptors</h5>
-                                    <button class="toggle-btn" data-target="core-erythroid-descriptors">▼</button>
-                                </div>
-                                <div class="collapsible-content">
-                                    <div class="descriptor-category">
-                                        <h6>Cell Size & Shape</h6>
-                                        <div class="checkbox-grid compact">
-                                            <label><input type="checkbox" name="core-ery-size" value="Normoblastic maturation"> Normoblastic maturation</label>
-                                            <label><input type="checkbox" name="core-ery-size" value="Megaloblastic change (large cells with open chromatin)"> Megaloblastic change (large cells with open chromatin)</label>
-                                             <label><input type="checkbox" name="core-ery-size" value="Microcytic erythroblasts"> Microcytic erythroblasts</label>
-                                             <label><input type="checkbox" name="core-ery-size" value="Macrocytic erythroblasts"> Macrocytic erythroblasts</label>
-                                            <label><input type="checkbox" name="core-ery-size" value="Irregular nuclear shapes (nuclear budding, multinuclearity)"> Irregular nuclear shapes (nuclear budding, multinuclearity)</label>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="descriptor-category">
-                                        <h6>Nuclear Features</h6>
-                                        <div class="checkbox-grid compact">
-                                            <label><input type="checkbox" name="core-ery-nuclear" value="Open chromatin with nucleoli (immature)"> Open chromatin with nucleoli (immature)</label>
-                                            <label><input type="checkbox" name="core-ery-nuclear" value="Hyperchromatic nuclei"> Hyperchromatic nuclei</label>
-                                            <label><input type="checkbox" name="core-ery-nuclear" value="Fragmented nuclei"> Fragmented nuclei</label>
-                                            <label><input type="checkbox" name="core-ery-nuclear" value="Nuclear budding / bridging"> Nuclear budding / bridging</label>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="descriptor-category">
-                                        <h6>Cytoplasmic Features</h6>
-                                        <div class="checkbox-grid compact">
-                                             <label><input type="checkbox" name="core-ery-cytoplasm" value="Basophilic cytoplasm"> Basophilic cytoplasm</label>
-                                             <label><input type="checkbox" name="core-ery-cytoplasm" value="Polychromatic cytoplasm"> Polychromatic cytoplasm</label>
-                                             <label><input type="checkbox" name="core-ery-cytoplasm" value="Orthochromatic cytoplasm"> Orthochromatic cytoplasm</label>
-                                            <label><input type="checkbox" name="core-ery-cytoplasm" value="Vacuolated cytoplasm"> Vacuolated cytoplasm</label>
-                                            <label><input type="checkbox" name="core-ery-cytoplasm" value="Reduced hemoglobinization (hypochromia)"> Reduced hemoglobinization (hypochromia)</label>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="descriptor-category">
-                                        <h6>Maturation Pattern</h6>
-                                        <div class="checkbox-grid compact">
-                                            <label><input type="checkbox" name="core-ery-maturation" value="Dyserythropoiesis"> Dyserythropoiesis</label>
-                                            <label><input type="checkbox" name="core-ery-maturation" value="Shift to early or late precursors"> Shift to early or late precursors</label>
-                                            <label><input type="checkbox" name="core-ery-maturation" value="Disordered maturation"> Disordered maturation</label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="core-erythroid-description">Additional erythroid description</label>
-                                <textarea id="core-erythroid-description" placeholder="Additional findings or specific observations"></textarea>
-                            </div>
-                        </div>
-                        
-                        <!-- Core Biopsy - Myeloid Lineage -->
-                        <div class="cell-type-section" id="core-myeloid">
-                            <h4>Myeloid Lineage</h4>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label>Myeloid lineage</label>
-                                    <div class="radio-group">
-                                        <label><input type="radio" name="core-myeloid" value="complete"> complete</label>
-                                        <label><input type="radio" name="core-myeloid" value="left-shifted"> left-shifted</label>
-                                        <label><input type="radio" name="core-myeloid" value="dysplastic/atypical" checked> dysplastic/atypical</label>
-                                        <label><input type="radio" name="core-myeloid" value="maturation is complete and without significant abnormalities"> maturation is complete and without significant abnormalities</label>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Detailed Core Biopsy Myeloid Descriptors -->
-                            <div class="descriptor-section collapsible" id="core-myeloid-descriptors">
-                                <div class="section-header-toggle">
-                                    <h5>📋 Detailed Descriptors</h5>
-                                    <button class="toggle-btn" data-target="core-myeloid-descriptors">▼</button>
-                                </div>
-                                <div class="collapsible-content">
-                                    <div class="descriptor-category">
-                                        <h6>Cellularity & Maturation</h6>
-                                        <div class="checkbox-grid compact">
-                                            <label><input type="checkbox" name="core-myel-cellularity" value="Left shift (increased early myeloid precursors)"> Left shift (increased early myeloid precursors)</label>
-                                            <label><input type="checkbox" name="core-myel-cellularity" value="Maturation arrest"> Maturation arrest</label>
-                                            <label><input type="checkbox" name="core-myel-cellularity" value="Normal trilineage hematopoiesis"> Normal trilineage hematopoiesis</label>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="descriptor-category">
-                                        <h6>Nuclear Features</h6>
-                                        <div class="checkbox-grid compact">
-                                            <label><input type="checkbox" name="core-myel-nuclear" value="Hyposegmentation (e.g., pseudo–Pelger-Huët anomaly)"> Hyposegmentation (e.g., pseudo–Pelger-Huët anomaly)</label>
-                                            <label><input type="checkbox" name="core-myel-nuclear" value="Hypersegmentation"> Hypersegmentation</label>
-                                            <label><input type="checkbox" name="core-myel-nuclear" value="Irregular nuclear shapes"> Irregular nuclear shapes</label>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="descriptor-category">
-                                        <h6>Cytoplasmic Features</h6>
-                                        <div class="checkbox-grid compact">
-                                            <label><input type="checkbox" name="core-myel-cytoplasm" value="Hypogranular cytoplasm"> Hypogranular cytoplasm</label>
-                                            <label><input type="checkbox" name="core-myel-cytoplasm" value="Toxic granulation"> Toxic granulation</label>
-                                            <label><input type="checkbox" name="core-myel-cytoplasm" value="Auer rods (pathologic finding)"> Auer rods (pathologic finding)</label>
-                                            <label><input type="checkbox" name="core-myel-cytoplasm" value="Cytoplasmic vacuolization"> Cytoplasmic vacuolization</label>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="descriptor-category">
-                                        <h6>Other</h6>
-                                        <div class="checkbox-grid compact">
-                                            <label><input type="checkbox" name="core-myel-other" value="Dysmyelopoiesis"> Dysmyelopoiesis</label>
-                                            <label><input type="checkbox" name="core-myel-other" value="Abnormal granule distribution"> Abnormal granule distribution</label>
-                                             <label><input type="checkbox" name="core-myel-other" value="Abnormal localization of immature precursors (ALIP)"> Abnormal localization of immature precursors (ALIP)</label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="core-myeloid-description">Additional myeloid description</label>
-                                <textarea id="core-myeloid-description" placeholder="Additional findings or specific observations"></textarea>
                             </div>
                         </div>
                         

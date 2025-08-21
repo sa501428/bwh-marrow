@@ -59,11 +59,14 @@ class EpicDataParser {
         // This handles both auto and manual differentials dynamically
         const lines = text.split('\n');
         
+        // First pass: collect all matches with priority info
+        const allMatches = [];
+        
         for (const line of lines) {
             // Skip absolute count lines (those with #)
-            if (line.includes('#') && !line.includes('NRBC#')) continue;
+            if (line.includes('#')) continue;
             
-            // Match percentage patterns: "CellType: XX.X" or "CellType (qualifier): XX.X"
+            // Match percentage patterns: "CellType: XX.X" or "CellType (qualifier): XX.X" or "CellType (%): XX.X"
             const percentMatch = line.match(/^([^:]+?)(?:\s*\([^)]*\))?\s*:\s*(\d+\.?\d*)/);
             
             if (percentMatch) {
@@ -73,10 +76,39 @@ class EpicDataParser {
                 // Normalize cell type names
                 const normalizedType = this.normalizeCellType(cellType);
                 if (normalizedType && !isNaN(percentage)) {
-                    results[normalizedType] = percentage;
+                    // Determine priority: percentage (%) > qualifiers > plain
+                    let priority = 0;
+                    if (cellType.includes('(%)') || cellType.includes('% (')) {
+                        priority = 3; // Highest priority for explicit percentage
+                    } else if (cellType.includes('(')) {
+                        priority = 2; // Medium priority for qualifiers like (auto)
+                    } else {
+                        priority = 1; // Lowest priority for plain entries
+                    }
+                    
+                    allMatches.push({
+                        normalizedType,
+                        percentage,
+                        priority,
+                        originalLine: line
+                    });
                 }
             }
         }
+        
+        // Second pass: select highest priority entry for each cell type
+        const typeGroups = {};
+        allMatches.forEach(match => {
+            if (!typeGroups[match.normalizedType] || 
+                typeGroups[match.normalizedType].priority < match.priority) {
+                typeGroups[match.normalizedType] = match;
+            }
+        });
+        
+        // Build final results
+        Object.values(typeGroups).forEach(match => {
+            results[match.normalizedType] = match.percentage;
+        });
 
         return results;
     }
@@ -139,7 +171,14 @@ class EpicDataParser {
             'unknown': 'unknown',
             'atypical lymphs': 'atypical_lymphocytes',
             'reactive lymphs': 'atypical_lymphocytes',
-            'lymphs, atypical/reactive (auto)': 'atypical_lymphocytes'
+            'lymphs, atypical/reactive (auto)': 'atypical_lymphocytes',
+            'granulocytes, immature': 'immature_granulocytes',
+            'granulocytes,immature': 'immature_granulocytes',
+            'granulocytes, immature (%)': 'immature_granulocytes',
+            'granulocytes,immature (%)': 'immature_granulocytes',
+            'immature granulocytes': 'immature_granulocytes',
+            'nrbc% (auto)': 'nrbc',
+            'nrbc%': 'nrbc'
         };
 
         return typeMap[normalized] || null;
@@ -441,7 +480,88 @@ class MarrowReportApp {
                 report += `Biopsy adequacy: ${biopsyAdequacy}${limitations ? `; ${limitations}` : ''}.\n`;
             }
             
-            // Core Biopsy - Megakaryocytes
+            // Cellularity
+            const cellularity = this.getValue('cellularity');
+            const ageCellularity = this.getSelectedRadioValue('age-cellularity');
+            
+            if (cellularity || ageCellularity) {
+                let cellularityText = 'Marrow biopsy cellularity: ';
+                
+                if (cellularity) {
+                    cellularityText += `${cellularity}`;
+                    // Add % if not already present
+                    if (!cellularity.includes('%')) {
+                        cellularityText += '%';
+                    }
+                } else {
+                    cellularityText += 'Not specified';
+                }
+                
+                if (ageCellularity) {
+                    cellularityText += `; age adjusted ${ageCellularity}`;
+                }
+                
+                cellularityText += '.\n';
+                report += cellularityText;
+            }
+            
+            // M:E Ratio
+            const meRatio = this.getSelectedRadioValue('me-ratio');
+            if (meRatio) {
+                report += `Myeloid:Erythroid ratio is ${meRatio}.\n`;
+            }
+            
+            // Core Biopsy - Myeloid Lineage (moved to first position)
+            const coreMyeloid = this.getSelectedRadioValue('core-myeloid');
+            const coreMyelDescription = this.getValue('core-myeloid-description');
+            
+            if (coreMyeloid) {
+                let myelString = `Myeloid lineage maturation is ${coreMyeloid}`;
+                
+                // Add detailed descriptors in narrative form
+                const coreMyelCellularity = this.getSelectedCheckboxValues('core-myel-cellularity');
+                const coreMyelNuclear = this.getSelectedCheckboxValues('core-myel-nuclear');
+                const coreMyelCytoplasm = this.getSelectedCheckboxValues('core-myel-cytoplasm');
+                const coreMyelOther = this.getSelectedCheckboxValues('core-myel-other');
+                
+                const allMyelFeatures = [...coreMyelCellularity, ...coreMyelNuclear, ...coreMyelCytoplasm, ...coreMyelOther];
+                if (allMyelFeatures.length > 0) {
+                    myelString += ` with features including ${allMyelFeatures.join(', ')}`;
+                }
+                
+                if (coreMyelDescription) {
+                    myelString += `. ${coreMyelDescription}`;
+                }
+                
+                report += myelString + '.\n';
+            }
+            
+            // Core Biopsy - Erythroid Lineage (moved to second position)
+            const coreErythroid = this.getSelectedRadioValue('core-erythroid');
+            const coreEryDescription = this.getValue('core-erythroid-description');
+            
+            if (coreErythroid) {
+                let eryString = `Erythroid lineage maturation is ${coreErythroid}`;
+                
+                // Add detailed descriptors in narrative form
+                const coreErySize = this.getSelectedCheckboxValues('core-ery-size');
+                const coreEryNuclear = this.getSelectedCheckboxValues('core-ery-nuclear');
+                const coreEryCytoplasm = this.getSelectedCheckboxValues('core-ery-cytoplasm');
+                const coreEryMaturation = this.getSelectedCheckboxValues('core-ery-maturation');
+                
+                const allEryFeatures = [...coreErySize, ...coreEryNuclear, ...coreEryCytoplasm, ...coreEryMaturation];
+                if (allEryFeatures.length > 0) {
+                    eryString += ` with features including ${allEryFeatures.join(', ')}`;
+                }
+                
+                if (coreEryDescription) {
+                    eryString += `. ${coreEryDescription}`;
+                }
+                
+                report += eryString + '.\n';
+            }
+            
+            // Core Biopsy - Megakaryocytes (moved to third position)
             const coreMegakaryocytes = this.getSelectedRadioValue('core-megakaryocytes');
             const coreMegIhc = this.getValue('core-megakaryocyte-ihc');
             const coreMegDescription = this.getValue('core-megakaryocyte-description');
@@ -470,56 +590,6 @@ class MarrowReportApp {
                 }
                 
                 report += megSentence + '.\n';
-            }
-            
-            // Core Biopsy - Erythroid Lineage
-            const coreErythroid = this.getSelectedRadioValue('core-erythroid');
-            const coreEryDescription = this.getValue('core-erythroid-description');
-            
-            if (coreErythroid) {
-                let eryString = `Erythroid lineage maturation is ${coreErythroid}`;
-                
-                // Add detailed descriptors in narrative form
-                const coreErySize = this.getSelectedCheckboxValues('core-ery-size');
-                const coreEryNuclear = this.getSelectedCheckboxValues('core-ery-nuclear');
-                const coreEryCytoplasm = this.getSelectedCheckboxValues('core-ery-cytoplasm');
-                const coreEryMaturation = this.getSelectedCheckboxValues('core-ery-maturation');
-                
-                const allEryFeatures = [...coreErySize, ...coreEryNuclear, ...coreEryCytoplasm, ...coreEryMaturation];
-                if (allEryFeatures.length > 0) {
-                    eryString += ` with features including ${allEryFeatures.join(', ')}`;
-                }
-                
-                if (coreEryDescription) {
-                    eryString += `. ${coreEryDescription}`;
-                }
-                
-                report += eryString + '.\n';
-            }
-            
-            // Core Biopsy - Myeloid Lineage
-            const coreMyeloid = this.getSelectedRadioValue('core-myeloid');
-            const coreMyelDescription = this.getValue('core-myeloid-description');
-            
-            if (coreMyeloid) {
-                let myelString = `Myeloid lineage maturation is ${coreMyeloid}`;
-                
-                // Add detailed descriptors in narrative form
-                const coreMyelCellularity = this.getSelectedCheckboxValues('core-myel-cellularity');
-                const coreMyelNuclear = this.getSelectedCheckboxValues('core-myel-nuclear');
-                const coreMyelCytoplasm = this.getSelectedCheckboxValues('core-myel-cytoplasm');
-                const coreMyelOther = this.getSelectedCheckboxValues('core-myel-other');
-                
-                const allMyelFeatures = [...coreMyelCellularity, ...coreMyelNuclear, ...coreMyelCytoplasm, ...coreMyelOther];
-                if (allMyelFeatures.length > 0) {
-                    myelString += ` with features including ${allMyelFeatures.join(', ')}`;
-                }
-                
-                if (coreMyelDescription) {
-                    myelString += `. ${coreMyelDescription}`;
-                }
-                
-                report += myelString + '.\n';
             }
             
             // Core Biopsy - Lymphocytes & Plasma Cells
@@ -1076,18 +1146,28 @@ function generateCBCParagraph(parsed) {
                 }
             });
             
-            paragraph += diffParts.join(', ') + '.';
+            paragraph += diffParts.join(', ');
         }
     }
     
-    // Morphology findings
+    // Include special differential findings and morphology
     const morph = parsed.morphology;
+    const morphParts = [];
+    
+    // Add immature granulocytes from differential
+    if (diff && diff.immature_granulocytes !== undefined) {
+        morphParts.push(`${diff.immature_granulocytes}% immature granulocytes`);
+    }
+    
+    // Add NRBC from differential or morphology with improved formatting
+    if (diff && diff.nrbc !== undefined) {
+        morphParts.push(`${diff.nrbc}% NRBCs`);
+    } else if (morph && morph.nrbc) {
+        morphParts.push(`${morph.nrbc}% NRBCs`);
+    }
+    
+    // Other morphology findings
     if (morph && Object.keys(morph).length > 0) {
-        const morphParts = [];
-        
-        if (morph.nrbc) {
-            morphParts.push(`${morph.nrbc}% nucleated red blood cells`);
-        }
         if (morph.toxicGranulation && morph.toxicGranulation.toLowerCase() === 'present') {
             morphParts.push('toxic granulation');
         }
@@ -1100,9 +1180,19 @@ function generateCBCParagraph(parsed) {
         if (morph.rbcMorph && morph.rbcMorph.toLowerCase() !== 'normal' && morph.rbcMorph.toLowerCase() !== 'completed') {
             morphParts.push(`RBC morphology: ${morph.rbcMorph.toLowerCase()}`);
         }
-        
-        if (morphParts.length > 0) {
-            paragraph += ` Notable findings include ${morphParts.join(', ')}.`;
+    }
+    
+    if (morphParts.length > 0) {
+        // Add comma if there were differential parts, otherwise add space
+        if (paragraph.trim().endsWith(',') || paragraph.includes('shows')) {
+            paragraph += `, ${morphParts.join(', ')}.`;
+        } else {
+            paragraph += ` ${morphParts.join(', ')}.`;
+        }
+    } else {
+        // Add period to close the differential sentence if no morphology parts
+        if (paragraph.trim().endsWith(',') || (paragraph.includes('shows') && !paragraph.trim().endsWith('.'))) {
+            paragraph += '.';
         }
     }
     
@@ -1122,10 +1212,409 @@ function generateCBCParagraph(parsed) {
     document.getElementById('paragraph-text').innerHTML = `<div style="font-style: italic; padding: 8px; background: #e7f3ff; border: 1px solid #b3d9ff; border-radius: 4px;">${paragraph}</div>`;
 }
 
+// Loneman Quick Texts data parsed from CSV
+const LONEMAN_QUICK_TEXTS = {
+    // Parsed from Loneman-Quick_texts.csv
+    'mmneg': 'An immunostain for CD138 does not reveal any definitive plasma cells. Too few plasma cells are present to evaluate by in-situ hybridization for kappa and lambda.',
+    'mmnegtop': '__cellular marrow with maturing trilineage hematopoiesis. There is no morphologic  or immunophenotypic evidence of a plasma cell neoplasm.',
+    'mmpos': 'An immunostain for CD138 highlights singly scattered and small, perivascular clusters of plasma cells (<5% of cells) which are monotypic for kappa by in-situ hybridization for kappa and lambda light chains.',
+    'noplas': 'No circulating plasma cells are seen.',
+    'cyclinneg': 'Cyclin D1 is negative in plasma cells.',
+    'plasasp': 'Plasma cells: Medium- to large-sized cells with round nuclei, condensed chromatin, and abundant cytoplasm. Occasional binucleate forms are seen.',
+    'corrplas': 'COMMENT: Clinical, radiographic, and laboratory correlation are required for definitive classification.',
+    'congoneg': 'A Congo red stain is negative for amyloid.',
+    'congopos': 'A Congo red stain highlights perivascular amyloid deposition.',
+    'knownmm': 'Involvement by the patient\'s known PLASMA CELL NEOPLASM.',
+    'mmcyto': 'Cytology: Intermediate- to large-sized cells with round to irregular nuclear contours, coarse chromatin, variably prominent nucleoli, and moderate to abundant cytoplasm. Occasional multinucleated forms are seen.',
+    'mmcore': 'Architecture: Patchy interstitial infiltration.',
+    'corrcyto': 'COMMENT: Correlation with concurrent cytogenetics is recommended.',
+    'polykl': 'polytypic by in-situ hybridization for kappa and lambda light chains.',
+    'corrmol': 'COMMENT: Correlation with pending molecular and cytogenetic studies is recommended.',
+    'corrmolcyto': 'COMMENT: Correlation with pending molecular and cytogenetic studies is recommended.',
+    'corrmolcytochim': 'COMMENT: Correlation with pending molecular, cytogenetic, and chimerism studies is recommended.',
+    'corrmolcytomrd': 'COMMENT: Correlation with pending minimal residual disease, molecular, and cytogenetic studies is recommended.',
+    'cd34n': 'Blasts are not increased (<5% of cells) by a CD34 immunostain.',
+    'p53n': 'A p53 stain shows variably staining, suggestive of wild-type expression.',
+    'header': 'A-C. BONE MARROW CORE BIOPSY AND ASPIRATE SMEARS, PERIPHERAL BLOOD SMEAR:',
+    'lsbc': 'left-shifted but complete.',
+    'limitedbx': 'Limited; predominantly blood and soft tissue with only a small area of evaluable marrow.',
+    'fewnormal': 'Normal hematopoietic elements are markedly decreased and [cannot be adequately evaluated]/[difficult to evaluate]',
+    'nonheme': 'Note: Most of the cellularity consists of stromal cells; histiocytes (including frequent hemosiderin-laden cells); lymphocytes; and singly scattered and small, perivascular aggregates of mature-appearing plasma cells. The lymphocytes are seen singly scattered in the interstitium and in occasional small, interstitial aggregates. Lymphocytes appear  small- to intermediate-sized with round to irregular nuclear contours, condensed to moderately dispersed chromatin, inconspicuous nucleoli, and scant cytoplasm.',
+    'nodx': 'No morphologic or flow cytometric  features of the patient\'s known ___ are seen.',
+    'altcell': 'A recent study has shown that marrow cellularity declines with age at a slower rate than previously assumed, and the mean cellularity for this patient\'s age group is ~44% (standard deviation ~11%, PMID: 37904278).',
+    'mgkmf': 'with frequent tight clustering, occasional paratrabecular localization, and exhibiting a morphologic spectrum, from hypolobated to hyperlobated forms and including occasional bulbous, hyperchromatic cells.',
+    'mdsmpn': 'with focal clustering and exhibiting morphologic heterogeneity: some cells are overtly dysplastic, including small, hypolobated forms and occasional cells with separated nuclear lobes. Other cells are atypical, including hyperlobated forms and occasional bulbous, hyperchromatic cells with high N:C ratio.',
+    'mgknorm': 'adequate in number and with overall normal morphology.',
+    'blastcore': 'Architecture: Diffuse sheets. Cytology: Predominantly intermediate-sized cells with ovoid to irregular nuclei, finely dispersed chromatin, variably prominent nucleoli, and scant to moderate amounts of cytoplasm.',
+    'inadeq': 'Note: The aspirate smear(s) and touch prep contain inadequate numbers of maturing hematopoietic elements for cellular enumeration or morphologic evaluation.',
+    'celllimit': 'Maturing myeloids and erythroids are markedly decreased but without overt morphologic abnormalities.',
+    'feneg': 'adequate storage iron. Ring sideroblasts do not appear increased.',
+    'felow': 'Storage iron appears decreased, correlation with serum iron studies recommended.',
+    'mdys': 'dysplastic, with hypogranular and hyposegmented cells.',
+    'edys': 'dysplastic, with occasional nuclear-cytoplasmic asynchrony and multinucleated cells.',
+    'mgkdys': 'dysplastic, with hypolobated forms and occasional cells with separated nuclear lobes.',
+    'blastasp': 'Predominantly medium-sized cells with round to irregular nuclear countours, finely dispersed chromatin, prominent nucleoli, and scant to moderate basophilic cytoplasm with occasional sparse granulation',
+    'pbsleb': 'red cell anisopoikilocytosis with frequent dacrocytes and occasional nucleated red cells; thrombocytopenia with occasional large platelets; and maturing and left-shifted myeloids, including occasional blasts, consistent with an leukoerythroblastic reaction.',
+    'pbsmds': 'red cell anisopoikilocytosis; thrombocytopenia with occasional large platelets; and occasional hypogranular and hyposegmented neutrophils, including pseudo-Pelger-Huet cells',
+    'lplac': 'Extensive interstitial infiltration by predominantly small lymphocytes with round to slightly irregular nuclei, moderately dispersed chromatin, inconspicuous nucleoli, and scant cytoplasm; a subset of plasmacytoid cells contain moderate amounts of cytoplasm with eccentric nuclei. Admixed plasma cells are also seen.',
+    'cllac': 'Lymphocytes: Large paratrabecular aggregates of small cells with round to slightly irregular nuclei, clumped chromatin, inconspicuous nucleoli, and scant cytoplasm. An immunostain reveals the cells to be B cells (PAX5+) with aberrant expression of CD5 and which constitute >90% of the cellularity.',
+    'cllasp': 'Lymphocytes: Small- to medium-sized cells with round to slightly irregular nuclei, clumped to moderately dispersed chromatin, inconspicuous nucleoli, and scant cytoplasm.',
+    'knownmn': 'Involvement by the patient\'s known MYELOID NEOPLASM.'
+};
+
+// Text Expansion System
+class TextExpansionSystem {
+    constructor() {
+        this.quickTexts = LONEMAN_QUICK_TEXTS;
+        this.setupEventListeners();
+        this.createHelpModal();
+        this.createFloatingHelpButton();
+    }
+
+    setupEventListeners() {
+        // Add F8 key listener to all text areas and text inputs
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'F8') {
+                event.preventDefault();
+                this.handleTextExpansion(event.target);
+            }
+        });
+    }
+
+    handleTextExpansion(targetElement) {
+        // Check if the target is a text input or textarea
+        if (!this.isTextInputElement(targetElement)) {
+            return;
+        }
+
+        const cursorPosition = targetElement.selectionStart;
+        const textBeforeCursor = targetElement.value.substring(0, cursorPosition);
+        
+        // Find the word immediately before the cursor
+        const wordMatch = textBeforeCursor.match(/\S+$/);
+        if (!wordMatch) {
+            return;
+        }
+
+        const word = wordMatch[0];
+        const wordStartPosition = cursorPosition - word.length;
+        
+        // Look for matching code (case insensitive)
+        const matchingCode = this.findMatchingCode(word);
+        if (matchingCode) {
+            const expandedText = this.quickTexts[matchingCode];
+            
+            // Replace the word with the expanded text
+            const textBefore = targetElement.value.substring(0, wordStartPosition);
+            const textAfter = targetElement.value.substring(cursorPosition);
+            
+            targetElement.value = textBefore + expandedText + textAfter;
+            
+            // Position cursor at the end of the expanded text
+            const newCursorPosition = wordStartPosition + expandedText.length;
+            targetElement.selectionStart = newCursorPosition;
+            targetElement.selectionEnd = newCursorPosition;
+            
+            // Trigger input event to update any form handling
+            targetElement.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    }
+
+    isTextInputElement(element) {
+        return element && (
+            element.tagName === 'TEXTAREA' ||
+            (element.tagName === 'INPUT' && element.type === 'text')
+        );
+    }
+
+    findMatchingCode(word) {
+        const lowerWord = word.toLowerCase();
+        // Check for exact match first
+        if (this.quickTexts[lowerWord]) {
+            return lowerWord;
+        }
+        
+        // Check all keys for case-insensitive match
+        for (const code in this.quickTexts) {
+            if (code.toLowerCase() === lowerWord) {
+                return code;
+            }
+        }
+        
+        return null;
+    }
+
+
+
+    createHelpModal() {
+        const modal = document.createElement('div');
+        modal.id = 'text-expansion-help-modal';
+        modal.className = 'text-expansion-modal';
+        modal.style.cssText = `
+            display: none;
+            position: fixed;
+            z-index: 10001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+        `;
+        
+        const modalContent = document.createElement('div');
+        modalContent.className = 'text-expansion-modal-content';
+        modalContent.style.cssText = `
+            background-color: white;
+            margin: 2% auto;
+            padding: 20px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 900px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            position: relative;
+        `;
+        
+        // Create modal header
+        const header = document.createElement('div');
+        header.style.cssText = `
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 15px;
+        `;
+        
+        const title = document.createElement('h2');
+        title.textContent = 'Text Expansion Reference';
+        title.style.cssText = `
+            color: #2c3e50;
+            margin: 0;
+            font-size: 1.5rem;
+        `;
+        
+        const closeButton = document.createElement('button');
+        closeButton.innerHTML = '×';
+        closeButton.style.cssText = `
+            background: none;
+            border: none;
+            font-size: 2rem;
+            cursor: pointer;
+            color: #666;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        `;
+        closeButton.onmouseover = () => closeButton.style.background = '#f0f0f0';
+        closeButton.onmouseout = () => closeButton.style.background = 'none';
+        closeButton.onclick = () => this.hideHelpModal();
+        
+        header.appendChild(title);
+        header.appendChild(closeButton);
+        
+        // Create instructions
+        const instructions = document.createElement('div');
+        instructions.innerHTML = `
+            <div style="background: #e3f2fd; padding: 12px; border-radius: 6px; margin-bottom: 20px; border-left: 4px solid #2196F3;">
+                <strong>How to use:</strong> Type any CODE (case insensitive) and press <kbd style="background: #f5f5f5; padding: 2px 6px; border-radius: 3px; border: 1px solid #ccc;">F8</kbd> to expand it to the full Comment text.
+            </div>
+        `;
+        
+        // Create search box
+        const searchContainer = document.createElement('div');
+        searchContainer.style.marginBottom = '20px';
+        
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.placeholder = 'Search codes or comments...';
+        searchInput.style.cssText = `
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e1e8ed;
+            border-radius: 6px;
+            font-size: 1rem;
+            box-sizing: border-box;
+        `;
+        
+        searchContainer.appendChild(searchInput);
+        
+        // Create expansions table
+        const tableContainer = document.createElement('div');
+        tableContainer.style.cssText = `
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e1e8ed;
+            border-radius: 6px;
+        `;
+        
+        const table = document.createElement('table');
+        table.style.cssText = `
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        `;
+        
+        // Table header
+        const thead = document.createElement('thead');
+        thead.innerHTML = `
+            <tr style="background: #f8f9fa;">
+                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6; font-weight: 600; color: #495057; width: 150px;">CODE</th>
+                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6; font-weight: 600; color: #495057;">COMMENT</th>
+            </tr>
+        `;
+        table.appendChild(thead);
+        
+        // Table body
+        const tbody = document.createElement('tbody');
+        tbody.id = 'expansions-table-body';
+        
+        this.populateExpansionsTable(tbody);
+        table.appendChild(tbody);
+        tableContainer.appendChild(table);
+        
+        // Search functionality
+        searchInput.addEventListener('input', () => {
+            this.filterExpansions(searchInput.value.toLowerCase(), tbody);
+        });
+        
+        modalContent.appendChild(header);
+        modalContent.appendChild(instructions);
+        modalContent.appendChild(searchContainer);
+        modalContent.appendChild(tableContainer);
+        modal.appendChild(modalContent);
+        
+        // Close modal when clicking outside
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                this.hideHelpModal();
+            }
+        });
+        
+        // Close modal with Escape key
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && modal.style.display === 'block') {
+                this.hideHelpModal();
+            }
+        });
+        
+        document.body.appendChild(modal);
+    }
+
+    populateExpansionsTable(tbody) {
+        tbody.innerHTML = '';
+        
+        // Sort codes alphabetically
+        const sortedCodes = Object.keys(this.quickTexts).sort();
+        
+        sortedCodes.forEach((code, index) => {
+            const row = document.createElement('tr');
+            row.style.cssText = `
+                ${index % 2 === 0 ? 'background: #fff;' : 'background: #f8f9fa;'}
+                transition: background-color 0.2s ease;
+            `;
+            row.onmouseover = () => row.style.background = '#e3f2fd';
+            row.onmouseout = () => row.style.background = index % 2 === 0 ? '#fff' : '#f8f9fa';
+            
+            const comment = this.quickTexts[code];
+            row.innerHTML = `
+                <td style="padding: 10px; border-bottom: 1px solid #e1e8ed; font-family: 'Courier New', monospace; font-weight: 600; color: #2c3e50; vertical-align: top;">${code.toUpperCase()}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #e1e8ed; line-height: 1.4; color: #495057;">${comment}</td>
+            `;
+            
+            tbody.appendChild(row);
+        });
+    }
+
+    filterExpansions(searchTerm, tbody) {
+        const rows = tbody.querySelectorAll('tr');
+        
+        rows.forEach(row => {
+            const code = row.querySelector('td:first-child').textContent.toLowerCase();
+            const comment = row.querySelector('td:last-child').textContent.toLowerCase();
+            
+            if (code.includes(searchTerm) || comment.includes(searchTerm)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    createFloatingHelpButton() {
+        const button = document.createElement('button');
+        button.id = 'floating-help-button';
+        button.innerHTML = '❓';
+        button.title = 'Show Text Expansion Help (F8 to expand codes)';
+        button.style.cssText = `
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #FF6B6B 0%, #ee5a52 100%);
+            border: none;
+            font-size: 1.5rem;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(255, 107, 107, 0.4);
+            z-index: 1000;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        `;
+        
+        button.onmouseover = () => {
+            button.style.transform = 'scale(1.1)';
+            button.style.boxShadow = '0 6px 20px rgba(255, 107, 107, 0.6)';
+        };
+        
+        button.onmouseout = () => {
+            button.style.transform = 'scale(1)';
+            button.style.boxShadow = '0 4px 16px rgba(255, 107, 107, 0.4)';
+        };
+        
+        button.onclick = () => this.showHelpModal();
+        
+        document.body.appendChild(button);
+    }
+
+    showHelpModal() {
+        const modal = document.getElementById('text-expansion-help-modal');
+        if (modal) {
+            modal.style.display = 'block';
+            // Focus the search input
+            const searchInput = modal.querySelector('input[type="text"]');
+            if (searchInput) {
+                setTimeout(() => searchInput.focus(), 100);
+            }
+        }
+    }
+
+    hideHelpModal() {
+        const modal = document.getElementById('text-expansion-help-modal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+}
+
 // Initialize the application when the DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     window.marrowApp = new MarrowReportApp();
     window.marrowApp.setupAutoSave();
+    
+    // Initialize text expansion system
+    window.textExpansion = new TextExpansionSystem();
 });
 
 
